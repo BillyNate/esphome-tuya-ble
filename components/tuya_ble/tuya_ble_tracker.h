@@ -1,0 +1,39 @@
+#pragma once
+
+#include <set>
+#include "esphome/components/esp32_ble_client/ble_client_base.h"
+#include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
+#include "esphome/core/component.h"
+
+#include "tuya_ble_client.h"
+
+namespace esphome {
+namespace tuya_ble {
+
+using namespace esp32_ble_client;
+
+class TuyaBleTracker : public esp32_ble_tracker::ESPBTDeviceListener, public Component {
+  uint32_t start;
+  void sort_devices();
+  void remove_devices_that_are_not_available();
+
+  public:
+    TuyaBleTracker() { this->start = esphome::millis(); }
+    bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) override;
+
+    void on_scan_end() override { ESP_LOGD("TuyaBle", "scan end"); }
+
+    void register_connection(TuyaBleClient *connection) {
+        ESP_LOGD("TuyaBle", "register_connection");
+        this->connection = connection;
+    }
+    void setup() override;
+    void loop() override;
+
+ protected:
+  TuyaBleClient *connection;
+  std::set<uint64_t> found_devices{};
+};
+
+}  // namespace tuya_ble
+}  // namespace esphome

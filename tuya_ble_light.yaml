@@ -1,0 +1,18 @@
+esphome:
+  name: tuya-ble-example
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+    
+external_components:
+  - source: components
+
+tuya_ble:
+  device_info:
+  - mac_address: !secret mac_address
+    local_key: !secret local_key
