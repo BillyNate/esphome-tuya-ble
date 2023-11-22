@@ -7,6 +7,7 @@
 #include "esphome/components/esp32_ble_client/ble_client_base.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/md5/md5.h"
+#include "helpers.h"
 
 namespace esphome {
 namespace tuya_ble {

@@ -75,6 +75,8 @@ void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned ch
   raw[12 + size] = (crc >> 8) & 0xff;
   raw[13 + size] = (crc >> 0) & 0xff;
   
+  ESP_LOGV(TAG, "%s", binary_to_string(raw, inflated_size).c_str());
+  
   encrypted_data[0] = (unsigned char)security_flag;
   memcpy(&encrypted_data[1], iv, IV_SIZE);
 
@@ -105,10 +107,14 @@ std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> TuyaBleClient::decrypt_data(
   code = (TuyaBLECode)((data[8] << 8) + data[9]);
   decrypted_size = (data[10] << 8) + data[11];
 
+  ESP_LOGV(TAG, "%s", binary_to_string(data, size).c_str());
+
   return std::make_tuple(seq_num, code, decrypted_size, response_to);
 }
 
 void TuyaBleClient::write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size) {
+  
+  ESP_LOGV(TAG, "%s", binary_to_string(encrypted_data, encrypted_size).c_str());
   
   size_t pack_size = GATT_MTU - 1;
 
@@ -148,6 +154,8 @@ void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned cha
 }
 
 void TuyaBleClient::collect_data(unsigned char *data, size_t size) {
+
+  ESP_LOGV(TAG, "%s", binary_to_string(data, size).c_str());
 
   size_t data_starts_at = 1;
   size_t concatenated_length = 0;
@@ -252,6 +260,8 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
           md5digest->calculate();
           md5digest->get_bytes(&device->session_key[0]);
           ESP_LOGI(TAG, "Session key set!");
+
+          ESP_LOGV(TAG, "%s", binary_to_string(device->session_key, 16).c_str());
         }
         break;
 
@@ -280,6 +290,8 @@ void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key)
   this->devices.insert(std::make_pair(mac_address, tuyaBleDevice));
   
   ESP_LOGI(TAG, "Added: %llu from config", mac_address);
+  
+  ESP_LOGV(TAG, "%s", binary_to_string(tuyaBleDevice.login_key, 16).c_str());
 }
 
 void TuyaBleClient::device_request_info(uint64_t mac_address) {
