@@ -1,17 +1,19 @@
 #pragma once
-/*
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-*/
+
 #include <map>
+#include <tuple>
 #include "aes/esp_aes.h"
 #include "esphome/core/log.h"
 #include "esphome/components/esp32_ble_client/ble_client_base.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
+#include "esphome/components/md5/md5.h"
 
 namespace esphome {
 namespace tuya_ble {
+
+namespace espbt = esphome::esp32_ble_tracker;
+
+using md5::MD5Digest;
 
 #define KEY_SIZE 0x10
 #define IV_SIZE 0x10
@@ -48,6 +50,18 @@ enum TuyaBLECode {
   FUN_RECEIVE_TIME2_REQ = 0x8012
 };
 
+enum Security {
+  AUTH_KEY = 0x01,
+  LOGIN_KEY = 0x04,
+  SESSION_KEY = 0x05,
+};
+
+enum DataCollectionState {
+  NO_DATA,
+  COLLECTING,
+  COLLECTED
+};
+
 /** UUID for Bluetooth GATT information service */
 static std::string uuid_info_service = "00001910-0000-1000-8000-00805f9b34fb";
 /** UUID for Bluetooth GATT notification characteristic */
@@ -56,7 +70,10 @@ static std::string uuid_notification_char = "00002b10-0000-1000-8000-00805f9b34f
 static std::string uuid_write_char = "00002b11-0000-1000-8000-00805f9b34fb";
 
 struct TuyaBleDevice {
+  unsigned char local_key[6];
   unsigned char login_key[16];
+  unsigned char session_key[16];
+  // There's supposedly also an auth_key, but since it's not used, it's not declared either
   uint32_t seq_num;
   uint32_t last_detected;
   int rssi;
@@ -70,6 +87,9 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase {
   esp32_ble_client::BLECharacteristic *write_char;
 
   std::map<uint64_t, struct TuyaBleDevice> devices{};
+  std::vector<unsigned char> data_collected;
+  uint8_t data_collection_incrementor = 0;
+  uint32_t data_collection_expected_size = 0;
 
   std::function<void()> disconnect_callback;
   
@@ -77,9 +97,11 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase {
 
   public:
 
-    static void encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, uint32_t response_to, uint8_t security_flag = 0x05);
+    static void encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag = 0x05);
+
+    static std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv);
   
-    void register_device(uint64_t mac_address, const char *local_key, uint64_t login_key_a, uint64_t login_key_b);
+    void register_device(uint64_t mac_address, const char *local_key);
 
     void device_request_info(uint64_t mac_address);
 
@@ -93,13 +115,19 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase {
 
     void set_disconnect_callback(std::function<void()> &&f);
 
-    //void loop() override;
+    void loop() override;
 
   protected:
+
+    DataCollectionState data_collection_state = DataCollectionState::NO_DATA;
 
     static void write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size);
 
     void write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to = 0, int protocol_version = 3);
+
+    void collect_data(unsigned char *data, size_t size);
+
+    void process_data(uint64_t mac_address);
 };
 
 }  // namespace tuya_ble

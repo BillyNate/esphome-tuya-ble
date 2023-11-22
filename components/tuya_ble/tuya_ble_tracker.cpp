@@ -13,6 +13,7 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   uint64_t mac_address = device.address_uint64();
 
   if(!this->connection->has_device(mac_address)) {
+    ESP_LOGV(TAG, "Found BLE device %s - %s. RSSI: %d dB (rejected)", device.get_name().c_str(), device.address_str().c_str(), device.get_rssi());
     return false;
   }
 
@@ -24,23 +25,16 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 
     ESP_LOGI(TAG, "Found BLE device %s - %s. RSSI: %d dB (total devices: %d)", device.get_name().c_str(), device.address_str().c_str(), ble_device->rssi, this->found_devices.size());
 
-    /*
-    if(!ble_device->session_key) {
-      // Connect once and get necessary data
+    if(std::all_of(ble_device->session_key, ble_device->session_key + 16, [](unsigned char x) { return x == '\0'; })) {
+      ESP_LOGI(TAG, "Device has no session key yet!");
     }
-    */
+    else {
+      ESP_LOGI(TAG, "Device already has a session key!");
+    }
+
     this->connection->set_address(mac_address);
     this->connection->parse_device(device);
-
-    this->set_timeout("connecting", 20000, [this, device]() { // Move this to the client loop() by using a start time and check if taken too long and thus disconnecting?
-      if (this->connection->connected()) {
-        return;
-      }
-      ESP_LOGI(TAG, "Failed to connect %s => rssi: %d", device.address_str().c_str(), device.get_rssi());
-      this->connection->disconnect();
-      this->connection->set_address(0);
-    });
-
+    this->last_connection_attempt = esphome::millis();
     this->found_devices.insert(mac_address);
   }
 
@@ -56,7 +50,14 @@ void TuyaBleTracker::setup() {
 }
 
 void TuyaBleTracker::loop() {
-  
+  //ESP_LOGI(TAG, "Connection state: %i, millis: %i, last_connection_attempt: %i, connected: %i", this->connection->state(), esphome::millis(), this->last_connection_attempt, this->connection->connected());
+  if(this->connection->state() == espbt::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {
+    if(!this->connection->connected()) {
+      ESP_LOGI(TAG, "Failed to connect");
+      this->connection->disconnect();
+      this->connection->set_address(0);
+    }
+  }
 }
 
 }  // namespace tuya_ble

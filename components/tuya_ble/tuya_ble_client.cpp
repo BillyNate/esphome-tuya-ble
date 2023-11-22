@@ -41,10 +41,9 @@ void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
   }
 }
 
-void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, uint32_t response_to, uint8_t security_flag) {
+void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag) {
   
-  unsigned char iv[IV_SIZE]{0};// = { 0x7c, 0xbc, 0x56, 0x4c, 0x86, 0xcf, 0xac, 0x73, 0x8d, 0x28, 0x9f, 0x5d, 0xaa, 0xfa, 0x36, 0x6a };
-  esp_fill_random(iv, 16);
+  
   size_t inflated_size = META_SIZE + size + CRC_SIZE + (16 - ((META_SIZE + size + CRC_SIZE) % 16)); // 12 bytes of meta data + size of data + 2 bytes crc + padding
   unsigned char raw[inflated_size]{0};
 
@@ -75,18 +74,7 @@ void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned ch
 
   raw[12 + size] = (crc >> 8) & 0xff;
   raw[13 + size] = (crc >> 0) & 0xff;
-  /*
-  std::stringstream buffer;
-  for(int i=0; i<inflated_size; i++) {
-    buffer << std::hex << std::setfill('0');
-    buffer << std::setw(2) << static_cast<unsigned>(raw[i]);
-  }
-  std::string hexString = buffer.str();
-  buffer.clear();
-  buffer.str(std::string());
-
-  ESP_LOGI(TAG, "%s", hexString.c_str());
-  */
+  
   encrypted_data[0] = (unsigned char)security_flag;
   memcpy(&encrypted_data[1], iv, IV_SIZE);
 
@@ -97,18 +85,31 @@ void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned ch
   esp_aes_free(&aes);
 }
 
-void TuyaBleClient::write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size) {
-  /*
-  std::stringstream buffer;
-  for(int i=0; i<encrypted_size; i++) {
-    buffer << std::hex << std::setfill('0');
-    buffer << std::setw(2) << static_cast<unsigned>(encrypted_data[i]);
-  }
-  std::string hexString2 = buffer.str();
-  buffer.clear();
+std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> TuyaBleClient::decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv) {
 
-  ESP_LOGI(TAG, "%s", hexString2.c_str());
-  */
+  uint8_t security_flag = encrypted_data[0];
+  uint32_t seq_num;
+  TuyaBLECode code;
+  size_t decrypted_size;
+  uint32_t response_to;
+  size_t deflated_size = encrypted_size - sizeof(security_flag) - IV_SIZE;
+
+  esp_aes_context aes;
+  esp_aes_init(&aes);
+  esp_aes_setkey(&aes, (const unsigned char *)key, KEY_SIZE * 8);
+  esp_aes_crypt_cbc(&aes, ESP_AES_DECRYPT, size, iv, (uint8_t*)encrypted_data, (uint8_t*)data);
+  esp_aes_free(&aes);
+
+  seq_num = (data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3];
+  response_to = (data[4] << 24) + (data[5] << 16) + (data[6] << 8) + data[7];
+  code = (TuyaBLECode)((data[8] << 8) + data[9]);
+  decrypted_size = (data[10] << 8) + data[11];
+
+  return std::make_tuple(seq_num, code, decrypted_size, response_to);
+}
+
+void TuyaBleClient::write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size) {
+  
   size_t pack_size = GATT_MTU - 1;
 
   for(int i=0; i<ceil(encrypted_size / (double)pack_size); i++) {
@@ -129,12 +130,14 @@ void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned cha
 
   size_t encrypted_size = META_SIZE + size + CRC_SIZE + (16 - ((META_SIZE + size + CRC_SIZE) % 16)) + 1 + IV_SIZE;
   unsigned char encrypted_data[encrypted_size + 2]{0};
-  uint8_t security_flag = 0x05;
+  uint8_t security_flag = Security::SESSION_KEY;
   if(protocol_version == 2) {
-    security_flag = 0x04; // adjust security flag for some reason
+    security_flag = Security::LOGIN_KEY; // adjust security flag for some reason
   }
 
-  encrypt_data(*seq_num, code, data, size, &encrypted_data[2], encrypted_size, key, response_to, security_flag);
+  unsigned char iv[IV_SIZE]{0};
+  esp_fill_random(iv, IV_SIZE);
+  encrypt_data(*seq_num, code, data, size, &encrypted_data[2], encrypted_size, key, (unsigned char *)iv, response_to, security_flag);
 
   encrypted_data[0] = (uint8_t)(encrypted_size);
   encrypted_data[1] = (protocol_version << 4);
@@ -144,42 +147,139 @@ void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned cha
   (*seq_num)++;
 }
 
-void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key, uint64_t login_key_a, uint64_t login_key_b) {
+void TuyaBleClient::collect_data(unsigned char *data, size_t size) {
 
-  struct TuyaBleDevice tuyaBleDevice = { .login_key = {0}, .seq_num = 1, .rssi = 0 };
-  tuyaBleDevice.login_key[ 0] = (login_key_a >> 56) & 0xff;
-  tuyaBleDevice.login_key[ 1] = (login_key_a >> 48) & 0xff;
-  tuyaBleDevice.login_key[ 2] = (login_key_a >> 40) & 0xff;
-  tuyaBleDevice.login_key[ 3] = (login_key_a >> 32) & 0xff;
-  tuyaBleDevice.login_key[ 4] = (login_key_a >> 24) & 0xff;
-  tuyaBleDevice.login_key[ 5] = (login_key_a >> 16) & 0xff;
-  tuyaBleDevice.login_key[ 6] = (login_key_a >>  8) & 0xff;
-  tuyaBleDevice.login_key[ 7] = (login_key_a >>  0) & 0xff;
+  size_t data_starts_at = 1;
+  size_t concatenated_length = 0;
+
+  if(data[0] != 0x00 && data[0] != this->data_collection_incrementor + 1) {
+    ESP_LOGW(TAG, "Received data packet with incorrect incrementor. Expected %i, got %i. Data rejected.", this->data_collection_incrementor + 1, data[0]);
+    return;
+  }
   
-  tuyaBleDevice.login_key[ 8] = (login_key_b >> 56) & 0xff;
-  tuyaBleDevice.login_key[ 9] = (login_key_b >> 48) & 0xff;
-  tuyaBleDevice.login_key[10] = (login_key_b >> 40) & 0xff;
-  tuyaBleDevice.login_key[11] = (login_key_b >> 32) & 0xff;
-  tuyaBleDevice.login_key[12] = (login_key_b >> 24) & 0xff;
-  tuyaBleDevice.login_key[13] = (login_key_b >> 16) & 0xff;
-  tuyaBleDevice.login_key[14] = (login_key_b >>  8) & 0xff;
-  tuyaBleDevice.login_key[15] = (login_key_b >>  0) & 0xff;
+  this->data_collection_incrementor = data[0];
+
+  if(data[0] == 0x00) { // if new sequence of packets is received; reset (do not wait for potential existing sequence to finish)
+    this->data_collection_state = DataCollectionState::COLLECTING;
+    this->data_collection_expected_size = data[1];
+    if(data[1] >= 128) {
+      data_starts_at ++;
+      if(data[2] > 1) {
+        ESP_LOGE(TAG, "Length (%i) of received data above 255. No code written to handle this!", data[1]);
+        // TODO: Instead of this error message, the int from data[1] should be read as variable length and handled accordingly
+      }
+    }
+    data_starts_at += 2;
+
+    this->data_collected.clear();
+    this->data_collected.reserve(this->data_collection_expected_size);
+  }
+  else {
+    concatenated_length = this->data_collection_incrementor * 19 - 2;
+    if(this->data_collection_expected_size > 127) {
+      concatenated_length --;
+    }
+  }
+
+  if(concatenated_length + (size - data_starts_at) > this->data_collection_expected_size) {
+    ESP_LOGW(TAG, "Not enough space allocated for received data!");
+    return;
+  }
+  memcpy(&this->data_collected[concatenated_length], &data[data_starts_at], size - data_starts_at);
+  concatenated_length += (size - data_starts_at);
+  ESP_LOGI(TAG, "Collected %i/%i", concatenated_length, this->data_collection_expected_size);
+  if(concatenated_length >= this->data_collection_expected_size)
+  {
+    ESP_LOGI(TAG, "Data collected!");
+    this->data_collection_state = DataCollectionState::COLLECTED;
+  }
+}
+
+void TuyaBleClient::process_data(uint64_t mac_address) {
+  if(this->data_collection_state != DataCollectionState::COLLECTED || this->data_collection_expected_size <= IV_SIZE + 1) { // Should be a multiple of 16 as well?
+    ESP_LOGW(TAG, "Attempt to process received data aborted");
+    return;
+  }
+  
+  TuyaBleDevice *device = this->get_device(mac_address);
+
+  uint8_t security_flag = (uint8_t)this->data_collected[0];
+
+  unsigned char *key;
+  if(security_flag == Security::LOGIN_KEY) {
+    key = device->login_key;
+  }
+  else if(security_flag == Security::AUTH_KEY) {
+    //TODO: set auth key?
+  }
+  else {
+    key = device->session_key;
+  }
+  
+  
+  unsigned char first_decrypted_part[16]{0};
+  size_t start_pos = sizeof(security_flag) + IV_SIZE;
+  uint32_t seq_num;
+  TuyaBLECode code;
+  size_t decrypted_size;
+  uint32_t response_to;
+  std::tie(seq_num, code, decrypted_size, response_to) = decrypt_data(&this->data_collected[start_pos], this->data_collection_expected_size - start_pos, first_decrypted_part, 16, key, &this->data_collected[1]);
+  // get length now that it's decrypted...
+
+  switch(code)
+  {
+    case TuyaBLECode::FUN_SENDER_DEVICE_INFO:
+      decrypted_size = 32; // Only need the srand actually, but the auth_key is in here as well
+      break;
+
+    default:
+      decrypted_size = this->data_collection_expected_size - sizeof(security_flag) - IV_SIZE - 16;
+      break;
+  }
+
+  if(decrypted_size > 0) {
+    unsigned char decrypted_data[decrypted_size]{0};
+    decrypt_data(&this->data_collected[start_pos + 16], this->data_collection_expected_size - start_pos - 16, decrypted_data, decrypted_size, key, &this->data_collected[1]);
+  
+    switch(code) {
+      case TuyaBLECode::FUN_SENDER_DEVICE_INFO:
+        {
+          MD5Digest *md5digest = new MD5Digest();
+    
+          md5digest->init();
+          md5digest->add(device->local_key, 6);
+          md5digest->add(&decrypted_data[2], 6);
+          md5digest->calculate();
+          md5digest->get_bytes(&device->session_key[0]);
+          ESP_LOGI(TAG, "Session key set!");
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+  
+  this->data_collected.clear();
+  this->data_collection_state = DataCollectionState::NO_DATA;
+}
+
+void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key) {
+
+  //struct TuyaBleDevice tuyaBleDevice = { .local_key = {local_key[0], local_key[1], local_key[2], local_key[3], local_key[4], local_key[5]}, .login_key = {0}, .session_key = {0}, .seq_num = 1, .rssi = 0 };
+  struct TuyaBleDevice tuyaBleDevice = { };
+  memcpy(tuyaBleDevice.local_key, local_key, 6);
+
+  MD5Digest *md5digest = new MD5Digest();
+  
+  md5digest->init();
+  md5digest->add(local_key, 6);
+  md5digest->calculate();
+  md5digest->get_bytes(&tuyaBleDevice.login_key[0]);
 
   this->devices.insert(std::make_pair(mac_address, tuyaBleDevice));
   
   ESP_LOGI(TAG, "Added: %llu from config", mac_address);
-  /*
-  std::stringstream buffer;
-  for(int i=0; i<16; i++) {
-    buffer << std::hex << std::setfill('0');
-    buffer << std::setw(2) << static_cast<unsigned>(tuyaBleDevice.login_key[i]);
-  }
-  std::string hexString = buffer.str();
-  buffer.clear();
-  buffer.str(std::string());
-
-  ESP_LOGI(TAG, "Login key: %s", hexString.c_str());
-  */
 }
 
 void TuyaBleClient::device_request_info(uint64_t mac_address) {
@@ -187,6 +287,7 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
   this->write_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_write_char));
 
   TuyaBleDevice *device = this->get_device(mac_address);
+  device->seq_num = 1;
 
   ESP_LOGD(TAG, "Listen for notifications");
   esp_err_t status = esp_ble_gattc_register_for_notify(this->get_gattc_if(), this->get_remote_bda(), this->notification_char->handle);
@@ -195,13 +296,14 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
   }
 
   // About to get DEVICE_INFO, this should be limited to whenever session_key is unusable:
+  if(std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) { // TODO: OR when session_key is expired
+    TuyaBLECode code = TuyaBLECode::FUN_SENDER_DEVICE_INFO;
+    size_t data_size = 0;
+    unsigned char data[data_size]{0};
+    int protocol_version = 2; // protocol version is usually 3
 
-  TuyaBLECode code = TuyaBLECode::FUN_SENDER_DEVICE_INFO;
-  size_t data_size = 0;
-  unsigned char data[data_size]{0};
-  int protocol_version = 2; // protocol version is usually 3
-
-  this->write_data(code, &device->seq_num, data, data_size, device->login_key, 0, protocol_version);
+    this->write_data(code, &device->seq_num, data, data_size, device->login_key, 0, protocol_version);
+  }
 }
 
 bool TuyaBleClient::has_device(uint64_t mac_address) {
@@ -232,8 +334,14 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       break;
     }
     case ESP_GATTC_NOTIFY_EVT: {
-      std::string notification = std::string((char *) param->notify.value, param->notify.value_len);
       ESP_LOGI(TAG, "Notification received!");
+      this->collect_data(param->notify.value, param->notify.value_len);
+
+      if(this->data_collection_state == DataCollectionState::COLLECTED) {
+        this->process_data(this->get_address());
+        this->disconnect();
+        this->set_address(0);
+      }
       break;
     }
   }
@@ -241,10 +349,19 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
 }
 
 void TuyaBleClient::set_disconnect_callback(std::function<void()> &&f) { this->disconnect_callback = std::move(f); }
-/*
+
 void TuyaBleClient::loop() {
+  // Prevent continuous reconnecting
+  if(this->state_ == espbt::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
+    if(this->has_device(this->get_address())) {
+      TuyaBleDevice *device = this->get_device(this->get_address());
+      if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) { // TODO: OR when session_key is expired
+        return;
+      }
+    }
+  }
   esp32_ble_client::BLEClientBase::loop();
 }
-*/
+
 }  // namespace tuya_ble
 }  // namespace esphome

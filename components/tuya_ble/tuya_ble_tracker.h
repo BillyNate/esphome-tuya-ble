@@ -14,6 +14,7 @@ using namespace esp32_ble_client;
 
 class TuyaBleTracker : public esp32_ble_tracker::ESPBTDeviceListener, public Component {
   uint32_t start;
+  uint32_t last_connection_attempt{0};
   void sort_devices();
   void remove_devices_that_are_not_available();
 

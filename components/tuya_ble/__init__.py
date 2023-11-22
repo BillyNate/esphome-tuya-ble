@@ -4,7 +4,7 @@ from esphome.components import esp32_ble_tracker, esp32_ble_client
 from esphome.const import CONF_ID, CONF_MAC_ADDRESS
 import hashlib
 
-AUTO_LOAD = ["esp32_ble_client", "esp32_ble_tracker"]
+AUTO_LOAD = ["esp32_ble_client", "esp32_ble_tracker", "md5"]
 DEPENDENCIES = ["esp32"]
 
 tuya_ble_ns = cg.esphome_ns.namespace("tuya_ble")
@@ -46,13 +46,10 @@ async def to_code(config):
     connection_var = cg.new_Pvariable(config["connection"][CONF_ID])
     
     for device in config.get("device_info", []):
-        login_key = hashlib.md5(device[CONF_LOCAL_KEY][:6].encode()).hexdigest()
         cg.add(
             connection_var.register_device(
                 device[CONF_MAC_ADDRESS].as_hex,
                 device[CONF_LOCAL_KEY],
-                int(login_key[:16], 16),
-                int(login_key[16:], 16),
             )
         )
 
