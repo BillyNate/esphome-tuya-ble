@@ -24,7 +24,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(TuyaBleTracker),
             cv.Optional("connection", {}): CONNECTION_SCHEMA,
-            cv.Optional("device_info", default=[]): cv.ensure_list(
+            cv.Optional("devices", default=[]): cv.ensure_list(
                 cv.Schema(
                     {
                         cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
@@ -45,7 +45,7 @@ async def to_code(config):
 
     connection_var = cg.new_Pvariable(config["connection"][CONF_ID])
     
-    for device in config.get("device_info", []):
+    for device in config.get("devices", []):
         cg.add(
             connection_var.register_device(
                 device[CONF_MAC_ADDRESS].as_hex,
