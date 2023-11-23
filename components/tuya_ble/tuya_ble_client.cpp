@@ -9,34 +9,34 @@ void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
   this->state_ = st;
   switch(st) {
     case esp32_ble_tracker::ClientState::INIT:
-      ESP_LOGI(TAG, "INIT");
+      ESP_LOGD(TAG, "INIT");
       break;
     case esp32_ble_tracker::ClientState::DISCONNECTING:
-      ESP_LOGI(TAG, "DISCONNECTING");
+      ESP_LOGD(TAG, "DISCONNECTING");
       break;
     case esp32_ble_tracker::ClientState::IDLE:
-      ESP_LOGI(TAG, "IDLE");
+      ESP_LOGD(TAG, "IDLE");
       break;
     case esp32_ble_tracker::ClientState::SEARCHING:
-      ESP_LOGI(TAG, "SEARCHING");
+      ESP_LOGD(TAG, "SEARCHING");
       break;
     case esp32_ble_tracker::ClientState::DISCOVERED:
-      ESP_LOGI(TAG, "DISCOVERED");
+      ESP_LOGD(TAG, "DISCOVERED");
       break;
     case esp32_ble_tracker::ClientState::READY_TO_CONNECT:
-      ESP_LOGI(TAG, "READY_TO_CONNECT");
+      ESP_LOGD(TAG, "READY_TO_CONNECT");
       break;
     case esp32_ble_tracker::ClientState::CONNECTING:
-      ESP_LOGI(TAG, "CONNECTING");
+      ESP_LOGD(TAG, "CONNECTING");
       break;
     case esp32_ble_tracker::ClientState::CONNECTED:
-      ESP_LOGI(TAG, "CONNECTED");
+      ESP_LOGD(TAG, "CONNECTED");
       break;
     case esp32_ble_tracker::ClientState::ESTABLISHED:
-      ESP_LOGI(TAG, "ESTABLISHED");
+      ESP_LOGD(TAG, "ESTABLISHED");
       break;
     default:
-      ESP_LOGI(TAG, "Unknown state");
+      ESP_LOGD(TAG, "Unknown state");
       break;
   }
 }
@@ -195,10 +195,10 @@ void TuyaBleClient::collect_data(unsigned char *data, size_t size) {
   }
   memcpy(&this->data_collected[concatenated_length], &data[data_starts_at], size - data_starts_at);
   concatenated_length += (size - data_starts_at);
-  ESP_LOGI(TAG, "Collected %i/%i", concatenated_length, this->data_collection_expected_size);
+  ESP_LOGD(TAG, "Collected %i/%i", concatenated_length, this->data_collection_expected_size);
   if(concatenated_length >= this->data_collection_expected_size)
   {
-    ESP_LOGI(TAG, "Data collected!");
+    ESP_LOGD(TAG, "Data collected!");
     this->data_collection_state = DataCollectionState::COLLECTED;
   }
 }
@@ -259,7 +259,7 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
           md5digest->add(&decrypted_data[2], 6);
           md5digest->calculate();
           md5digest->get_bytes(&device->session_key[0]);
-          ESP_LOGI(TAG, "Session key set!");
+          ESP_LOGD(TAG, "Session key set!");
 
           ESP_LOGV(TAG, "%s", binary_to_string(device->session_key, 16).c_str());
         }
@@ -289,7 +289,7 @@ void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key)
 
   this->devices.insert(std::make_pair(mac_address, tuyaBleDevice));
   
-  ESP_LOGI(TAG, "Added: %llu from config", mac_address);
+  ESP_LOGD(TAG, "Added: %llu from config", mac_address);
   
   ESP_LOGV(TAG, "%s", binary_to_string(tuyaBleDevice.login_key, 16).c_str());
 }
@@ -330,7 +330,7 @@ void TuyaBleClient::on_shutdown() {
 }
 
 bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) {
-  ESP_LOGI(TAG, "[%d] [%s] gattc_event_handler: event=%d gattc_if=%d", this->connection_index_, this->address_str_.c_str(), event, gattc_if);
+  ESP_LOGV(TAG, "[%d] [%s] gattc_event_handler: event=%d gattc_if=%d", this->connection_index_, this->address_str_.c_str(), event, gattc_if);
 
   if (!esp32_ble_client::BLEClientBase::gattc_event_handler(event, gattc_if, param))
     return false;
@@ -346,7 +346,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       break;
     }
     case ESP_GATTC_NOTIFY_EVT: {
-      ESP_LOGI(TAG, "Notification received!");
+      ESP_LOGD(TAG, "Notification received!");
       this->collect_data(param->notify.value, param->notify.value_len);
 
       if(this->data_collection_state == DataCollectionState::COLLECTED) {

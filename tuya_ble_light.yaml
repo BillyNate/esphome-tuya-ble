@@ -8,6 +8,7 @@ esp32:
 
 # Enable logging
 logger:
+  level: WARN
     
 external_components:
   - source: components
