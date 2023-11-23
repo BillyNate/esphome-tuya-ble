@@ -106,6 +106,8 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase {
 
     void device_request_info(uint64_t mac_address);
 
+    void device_switch(uint64_t mac_address, bool value);
+
     bool has_device(uint64_t mac_address);
 
     TuyaBleDevice *get_device(uint64_t mac_address);

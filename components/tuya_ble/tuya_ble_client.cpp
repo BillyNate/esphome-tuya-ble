@@ -318,6 +318,15 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
   }
 }
 
+void TuyaBleClient::device_switch(uint64_t mac_address, bool value) {
+  TuyaBleDevice *device = this->get_device(mac_address);
+
+  size_t dp_size = 4;
+  unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
+
+  this->write_data(TuyaBLECode::FUN_SENDER_DPS, &device->seq_num, data, dp_size, device->session_key);
+}
+
 bool TuyaBleClient::has_device(uint64_t mac_address) {
   return this->devices.count(mac_address) > 0;
 }
