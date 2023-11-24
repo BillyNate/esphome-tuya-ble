@@ -12,12 +12,12 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 
   uint64_t mac_address = device.address_uint64();
 
-  if(!this->connection->has_device(mac_address)) {
+  if(!this->client->has_device(mac_address)) {
     ESP_LOGV(TAG, "Found BLE device %s - %s. RSSI: %d dB (rejected)", device.get_name().c_str(), device.address_str().c_str(), device.get_rssi());
     return false;
   }
 
-  TuyaBleDevice *ble_device = this->connection->get_device(mac_address);
+  TuyaBleDevice *ble_device = this->client->get_device(mac_address);
   ble_device->last_detected = esphome::millis();
   ble_device->rssi = device.get_rssi();
 
@@ -32,8 +32,8 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
       ESP_LOGD(TAG, "Device already has a session key!");
     }
 
-    this->connection->set_address(mac_address);
-    this->connection->parse_device(device);
+    this->client->set_address(mac_address);
+    this->client->parse_device(device);
     this->last_connection_attempt = esphome::millis();
     this->found_devices.insert(mac_address);
   }
@@ -46,16 +46,16 @@ void TuyaBleTracker::setup() {
 
   ESP_LOGD(TAG, "setup");
 
-  this->connection->set_disconnect_callback([this]() { ESP_LOGD(TAG, "disconnected"); });
+  this->client->set_disconnect_callback([this]() { ESP_LOGD(TAG, "disconnected"); });
 }
 
 void TuyaBleTracker::loop() {
-  //ESP_LOGD(TAG, "Connection state: %i, millis: %i, last_connection_attempt: %i, connected: %i", this->connection->state(), esphome::millis(), this->last_connection_attempt, this->connection->connected());
-  if(this->connection->state() == espbt::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {
-    if(!this->connection->connected()) {
+  //ESP_LOGD(TAG, "Connection state: %i, millis: %i, last_connection_attempt: %i, connected: %i", this->client->state(), esphome::millis(), this->last_connection_attempt, this->client->connected());
+  if(this->client->state() == espbt::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {
+    if(!this->client->connected()) {
       ESP_LOGD(TAG, "Failed to connect");
-      this->connection->disconnect();
-      this->connection->set_address(0);
+      this->client->disconnect();
+      this->client->set_address(0);
     }
   }
 }

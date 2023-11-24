@@ -12,7 +12,8 @@ TuyaBleTracker = tuya_ble_ns.class_("TuyaBleTracker", esp32_ble_tracker.ESPBTDev
 TuyaBleClient = tuya_ble_ns.class_("TuyaBleClient", esp32_ble_client.BLEClientBase)
 
 CONF_LOCAL_KEY = 'local_key'
-CONNECTION_SCHEMA = esp32_ble_tracker.ESP_BLE_DEVICE_SCHEMA.extend(
+
+CLIENT_SCHEMA = esp32_ble_tracker.ESP_BLE_DEVICE_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(TuyaBleClient),
     }
@@ -22,7 +23,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(TuyaBleTracker),
-            cv.Optional("connection", {}): CONNECTION_SCHEMA,
+            cv.Optional("client", {}): CLIENT_SCHEMA,
             cv.Optional("devices", default=[]): cv.ensure_list(
                 cv.Schema(
                     {
@@ -42,16 +43,16 @@ async def to_code(config):
     await cg.register_component(var, config)
     await esp32_ble_tracker.register_ble_device(var, config)
 
-    connection_var = cg.new_Pvariable(config["connection"][CONF_ID])
+    client_var = cg.new_Pvariable(config["client"][CONF_ID])
     
     for device in config.get("devices", []):
         cg.add(
-            connection_var.register_device(
+            client_var.register_device(
                 device[CONF_MAC_ADDRESS].as_hex,
                 device[CONF_LOCAL_KEY],
             )
         )
 
-    await cg.register_component(connection_var, config["connection"])
-    cg.add(var.register_connection(connection_var))
-    await esp32_ble_tracker.register_client(connection_var, config["connection"])
+    await cg.register_component(client_var, config["client"])
+    cg.add(var.register_client(client_var))
+    await esp32_ble_tracker.register_client(client_var, config["client"])

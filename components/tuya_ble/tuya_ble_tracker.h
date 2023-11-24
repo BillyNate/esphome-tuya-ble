@@ -24,15 +24,15 @@ class TuyaBleTracker : public esp32_ble_tracker::ESPBTDeviceListener, public Com
 
     void on_scan_end() override { ESP_LOGD("TuyaBle", "scan end"); }
 
-    void register_connection(TuyaBleClient *connection) {
-        ESP_LOGD("TuyaBle", "register_connection");
-        this->connection = connection;
+    void register_client(TuyaBleClient *client) {
+        ESP_LOGD("TuyaBle", "register_client");
+        this->client = client;
     }
     void setup() override;
     void loop() override;
 
  protected:
-  TuyaBleClient *connection;
+  TuyaBleClient *client;
   std::set<uint64_t> found_devices{};
 };
 
