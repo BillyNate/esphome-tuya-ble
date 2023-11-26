@@ -4,11 +4,16 @@
 #include "esphome/core/helpers.h"
 
 namespace esphome {
-namespace tuya_ble {
+namespace tuya_ble_tracker {
 
 static const char *const TAG = "tuya_ble_tracker";
 
 bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
+
+  if(!this->has_client) {
+    ESP_LOGW(TAG, "No client registered!");
+    return false;
+  }
 
   uint64_t mac_address = device.address_uint64();
 
@@ -46,16 +51,20 @@ void TuyaBleTracker::setup() {
 
   ESP_LOGD(TAG, "setup");
 
-  this->client->set_disconnect_callback([this]() { ESP_LOGD(TAG, "disconnected"); });
+  if(this->has_client) {
+    this->client->set_disconnect_callback([this]() { ESP_LOGD(TAG, "disconnected"); });
+  }
 }
 
 void TuyaBleTracker::loop() {
-  //ESP_LOGD(TAG, "Connection state: %i, millis: %i, last_connection_attempt: %i, connected: %i", this->client->state(), esphome::millis(), this->last_connection_attempt, this->client->connected());
-  if(this->client->state() == espbt::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {
-    if(!this->client->connected()) {
-      ESP_LOGD(TAG, "Failed to connect");
-      this->client->disconnect();
-      this->client->set_address(0);
+  if(this->has_client) {
+    //ESP_LOGD(TAG, "Connection state: %i, millis: %i, last_connection_attempt: %i, connected: %i", this->client->state(), esphome::millis(), this->last_connection_attempt, this->client->connected());
+    if(this->client->state() == espbt::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {
+      if(!this->client->connected()) {
+        ESP_LOGD(TAG, "Failed to connect");
+        this->client->disconnect();
+        this->client->set_address(0);
+      }
     }
   }
 }

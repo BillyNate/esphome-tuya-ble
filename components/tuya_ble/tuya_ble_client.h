@@ -7,12 +7,14 @@
 #include "esphome/components/esp32_ble_client/ble_client_base.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/md5/md5.h"
+#include "esphome/components/tuya_ble_tracker/tuya_ble_tracker.h"
 #include "helpers.h"
 
 namespace esphome {
 namespace tuya_ble {
 
 namespace espbt = esphome::esp32_ble_tracker;
+namespace tybt = esphome::tuya_ble_tracker;
 
 using md5::MD5Digest;
 
@@ -70,24 +72,14 @@ static std::string uuid_notification_char = "00002b10-0000-1000-8000-00805f9b34f
 /** UUID for Bluetooth GATT command characteristic */
 static std::string uuid_write_char = "00002b11-0000-1000-8000-00805f9b34fb";
 
-struct TuyaBleDevice {
-  unsigned char local_key[6];
-  unsigned char login_key[16];
-  unsigned char session_key[16];
-  // There's supposedly also an auth_key, but since it's not used, it's not declared either
-  uint32_t seq_num;
-  uint32_t last_detected;
-  int rssi;
-};
-
-class TuyaBleClient : public esp32_ble_client::BLEClientBase {
+class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tybt::TYBleClient {
 
   //DeviceInfoResolver *device_info_resolver = new DeviceInfoResolver();
 
   esp32_ble_client::BLECharacteristic *notification_char;
   esp32_ble_client::BLECharacteristic *write_char;
 
-  std::map<uint64_t, struct TuyaBleDevice> devices{};
+  std::map<uint64_t, struct tuya_ble_tracker::TuyaBleDevice> devices{};
   std::vector<unsigned char> data_collected;
   uint8_t data_collection_incrementor = 0;
   uint32_t data_collection_expected_size = 0;
@@ -110,7 +102,17 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase {
 
     bool has_device(uint64_t mac_address);
 
-    TuyaBleDevice *get_device(uint64_t mac_address);
+    struct tuya_ble_tracker::TuyaBleDevice *get_device(uint64_t mac_address);
+
+    void set_address(uint64_t address) { esp32_ble_client::BLEClientBase::set_address(address); }
+
+    bool parse_device(const espbt::ESPBTDevice &device) { return esp32_ble_client::BLEClientBase::parse_device(device); }
+
+    void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) { esp32_ble_client::BLEClientBase::gap_event_handler(event, param); }
+
+    void connect() { esp32_ble_client::BLEClientBase::connect(); }
+
+    void disconnect() { esp32_ble_client::BLEClientBase::disconnect(); }
 
     void on_shutdown() override;
 
@@ -123,6 +125,8 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase {
   protected:
 
     DataCollectionState data_collection_state = DataCollectionState::NO_DATA;
+
+    espbt::ClientState state_;
 
     static void write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size);
 

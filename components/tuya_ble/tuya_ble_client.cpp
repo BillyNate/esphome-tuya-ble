@@ -209,7 +209,7 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
     return;
   }
   
-  TuyaBleDevice *device = this->get_device(mac_address);
+  tuya_ble_tracker::TuyaBleDevice *device = this->get_device(mac_address);
 
   uint8_t security_flag = (uint8_t)this->data_collected[0];
 
@@ -277,7 +277,7 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
 void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key) {
 
   //struct TuyaBleDevice tuyaBleDevice = { .local_key = {local_key[0], local_key[1], local_key[2], local_key[3], local_key[4], local_key[5]}, .login_key = {0}, .session_key = {0}, .seq_num = 1, .rssi = 0 };
-  struct TuyaBleDevice tuyaBleDevice = { };
+  struct tuya_ble_tracker::TuyaBleDevice tuyaBleDevice = { };
   memcpy(tuyaBleDevice.local_key, local_key, 6);
 
   MD5Digest *md5digest = new MD5Digest();
@@ -298,7 +298,7 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
   this->notification_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_notification_char));
   this->write_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_write_char));
 
-  TuyaBleDevice *device = this->get_device(mac_address);
+  tuya_ble_tracker::TuyaBleDevice *device = this->get_device(mac_address);
   device->seq_num = 1;
 
   ESP_LOGD(TAG, "Listen for notifications");
@@ -319,7 +319,7 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
 }
 
 void TuyaBleClient::device_switch(uint64_t mac_address, bool value) {
-  TuyaBleDevice *device = this->get_device(mac_address);
+  tuya_ble_tracker::TuyaBleDevice *device = this->get_device(mac_address);
 
   size_t dp_size = 4;
   unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
@@ -331,7 +331,7 @@ bool TuyaBleClient::has_device(uint64_t mac_address) {
   return this->devices.count(mac_address) > 0;
 }
 
-TuyaBleDevice *TuyaBleClient::get_device(uint64_t mac_address) {
+tuya_ble_tracker::TuyaBleDevice *TuyaBleClient::get_device(uint64_t mac_address) {
   return &this->devices[mac_address];
 }
 
@@ -375,7 +375,7 @@ void TuyaBleClient::loop() {
   // Prevent continuous reconnecting
   if(this->state_ == espbt::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
     if(this->has_device(this->get_address())) {
-      TuyaBleDevice *device = this->get_device(this->get_address());
+      tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
       if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) { // TODO: OR when session_key is expired
         return;
       }

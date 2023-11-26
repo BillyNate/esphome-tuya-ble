@@ -13,7 +13,10 @@ logger:
 external_components:
   - source: components
 
+esp32_ble_tracker:
+
+tuya_ble_tracker:
+
 tuya_ble:
-  devices:
   - mac_address: !secret mac_address
     local_key: !secret local_key
