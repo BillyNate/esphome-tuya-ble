@@ -373,7 +373,7 @@ void TuyaBleClient::set_disconnect_callback(std::function<void()> &&f) { this->d
 
 void TuyaBleClient::loop() {
   // Prevent continuous reconnecting
-  if(this->state_ == espbt::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
+  if(this->state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
     if(this->has_device(this->get_address())) {
       tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
       if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) { // TODO: OR when session_key is expired

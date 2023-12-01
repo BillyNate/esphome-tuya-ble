@@ -13,9 +13,6 @@
 namespace esphome {
 namespace tuya_ble {
 
-namespace espbt = esphome::esp32_ble_tracker;
-namespace tybt = esphome::tuya_ble_tracker;
-
 using md5::MD5Digest;
 
 #define KEY_SIZE 0x10
@@ -72,7 +69,7 @@ static std::string uuid_notification_char = "00002b10-0000-1000-8000-00805f9b34f
 /** UUID for Bluetooth GATT command characteristic */
 static std::string uuid_write_char = "00002b11-0000-1000-8000-00805f9b34fb";
 
-class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tybt::TYBleClient {
+class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuya_ble_tracker::TYBleClient {
 
   //DeviceInfoResolver *device_info_resolver = new DeviceInfoResolver();
 
@@ -106,7 +103,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tyb
 
     void set_address(uint64_t address) { esp32_ble_client::BLEClientBase::set_address(address); }
 
-    bool parse_device(const espbt::ESPBTDevice &device) { return esp32_ble_client::BLEClientBase::parse_device(device); }
+    bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) { return esp32_ble_client::BLEClientBase::parse_device(device); }
 
     void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) { esp32_ble_client::BLEClientBase::gap_event_handler(event, param); }
 
@@ -126,7 +123,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tyb
 
     DataCollectionState data_collection_state = DataCollectionState::NO_DATA;
 
-    espbt::ClientState state_;
+    esp32_ble_tracker::ClientState state_;
 
     static void write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size);
 
