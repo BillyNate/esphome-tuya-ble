@@ -86,21 +86,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
   virtual void set_state(esp32_ble_tracker::ClientState st) override;
 
   public:
-
-    static void encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag = 0x05);
-
-    static std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv);
-  
-    void register_device(uint64_t mac_address, const char *local_key);
-
-    void device_request_info(uint64_t mac_address);
-
-    void device_switch(uint64_t mac_address, bool value);
-
-    bool has_device(uint64_t mac_address);
-
-    struct tuya_ble_tracker::TuyaBleDevice *get_device(uint64_t mac_address);
-
+    // Solve ambiguous methods:
     void set_address(uint64_t address) { esp32_ble_client::BLEClientBase::set_address(address); }
 
     bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) { return esp32_ble_client::BLEClientBase::parse_device(device); }
@@ -111,13 +97,29 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
 
     void disconnect() { esp32_ble_client::BLEClientBase::disconnect(); }
 
-    void on_shutdown() override;
-
+    // Override existing methods:
     bool gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) override;
 
-    void set_disconnect_callback(std::function<void()> &&f);
+    void on_shutdown() override;
 
     void loop() override;
+
+    // Declare our own methods:
+    static void encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag = 0x05);
+
+    static std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv);
+  
+    void register_device(uint64_t mac_address, const char *local_key);
+
+    bool has_device(uint64_t mac_address);
+
+    struct tuya_ble_tracker::TuyaBleDevice *get_device(uint64_t mac_address);
+
+    void device_request_info(uint64_t mac_address);
+
+    void device_switch(uint64_t mac_address, bool value);
+
+    void set_disconnect_callback(std::function<void()> &&f);
 
   protected:
 
