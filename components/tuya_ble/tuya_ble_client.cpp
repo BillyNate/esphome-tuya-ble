@@ -6,6 +6,8 @@ namespace tuya_ble {
 static const char *const TAG = "tuya_ble_client";
 
 void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
+  esp32_ble_client::BLEClientBase::set_state(st);
+  
   this->state_ = st;
   switch(st) {
     case esp32_ble_tracker::ClientState::INIT:
