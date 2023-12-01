@@ -351,7 +351,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     }
     case ESP_GATTC_SEARCH_CMPL_EVT:
     case ESP_GATTC_OPEN_EVT: {
-      if(this->state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
+      if(this->state_ == esp32_ble_tracker::ClientState::ESTABLISHED || esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
         this->device_request_info(this->get_address());
       }
       break;
