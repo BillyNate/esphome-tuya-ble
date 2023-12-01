@@ -8,7 +8,6 @@ static const char *const TAG = "tuya_ble_client";
 void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
   esp32_ble_client::BLEClientBase::set_state(st);
   
-  this->state_ = st;
   switch(st) {
     case esp32_ble_tracker::ClientState::INIT:
       ESP_LOGD(TAG, "INIT");
@@ -351,7 +350,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     }
     case ESP_GATTC_SEARCH_CMPL_EVT:
     case ESP_GATTC_OPEN_EVT: {
-      if(this->state_ == esp32_ble_tracker::ClientState::ESTABLISHED || esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
+      if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
         this->device_request_info(this->get_address());
       }
       break;
@@ -375,7 +374,7 @@ void TuyaBleClient::set_disconnect_callback(std::function<void()> &&f) { this->d
 
 void TuyaBleClient::loop() {
   // Prevent continuous reconnecting
-  if(this->state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
+  if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
     if(this->has_device(this->get_address())) {
       tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
       if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) { // TODO: OR when session_key is expired

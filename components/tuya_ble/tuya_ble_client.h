@@ -123,8 +123,6 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
 
     DataCollectionState data_collection_state = DataCollectionState::NO_DATA;
 
-    esp32_ble_tracker::ClientState state_;
-
     static void write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size);
 
     void write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to = 0, int protocol_version = 3);

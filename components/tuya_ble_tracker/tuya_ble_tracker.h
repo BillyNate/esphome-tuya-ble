@@ -21,6 +21,7 @@ struct TuyaBleDevice {
 };
 
 class TYBleClient {
+  espbt::ClientState state_;
   public:
     virtual struct TuyaBleDevice *get_device(uint64_t mac_address);
     virtual bool has_device(uint64_t mac_address) = 0;
@@ -30,8 +31,6 @@ class TYBleClient {
     virtual void set_disconnect_callback(std::function<void()> &&f);
     virtual bool parse_device(const espbt::ESPBTDevice &device);
     espbt::ClientState state() const { return state_; }
-  protected:
-    espbt::ClientState state_;
 };
 
 class TuyaBleTracker : public esp32_ble_tracker::ESPBTDeviceListener, public Component {
