@@ -17,6 +17,7 @@ using md5::MD5Digest;
 
 #define KEY_SIZE 0x10
 #define IV_SIZE 0x10
+#define AES_BLOCK_SIZE 0x10
 #define META_SIZE 0x0C
 #define CRC_SIZE 0x02
 #define GATT_MTU 0x14

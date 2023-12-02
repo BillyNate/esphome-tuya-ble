@@ -44,7 +44,7 @@ void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
 
 void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag) {
 
-  size_t inflated_size = META_SIZE + size + CRC_SIZE + (16 - ((META_SIZE + size + CRC_SIZE) % 16)); // 12 bytes of meta data + size of data + 2 bytes crc + padding
+  size_t inflated_size = META_SIZE + size + CRC_SIZE + (AES_BLOCK_SIZE - ((META_SIZE + size + CRC_SIZE) % AES_BLOCK_SIZE)); // 12 bytes of meta data + size of data + 2 bytes crc + padding
   unsigned char raw[inflated_size]{0};
 
   if(inflated_size + sizeof(security_flag) + IV_SIZE > encrypted_size) {
@@ -134,7 +134,7 @@ void TuyaBleClient::write_to_char(esp32_ble_client::BLECharacteristic *write_cha
 
 void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to, int protocol_version) {
 
-  size_t encrypted_size = META_SIZE + size + CRC_SIZE + (16 - ((META_SIZE + size + CRC_SIZE) % 16)) + 1 + IV_SIZE;
+  size_t encrypted_size = META_SIZE + size + CRC_SIZE + (AES_BLOCK_SIZE - ((META_SIZE + size + CRC_SIZE) % AES_BLOCK_SIZE)) + 1 + IV_SIZE;
   unsigned char encrypted_data[encrypted_size + 2]{0};
   uint8_t security_flag = Security::SESSION_KEY;
   if(protocol_version == 2) {
@@ -225,13 +225,13 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
   }
   
   
-  unsigned char first_decrypted_part[16]{0};
+  unsigned char first_decrypted_part[AES_BLOCK_SIZE]{0};
   size_t start_pos = sizeof(security_flag) + IV_SIZE;
   uint32_t seq_num;
   TuyaBLECode code;
   size_t decrypted_size;
   uint32_t response_to;
-  std::tie(seq_num, code, decrypted_size, response_to) = decrypt_data(&this->data_collected[start_pos], this->data_collection_expected_size - start_pos, first_decrypted_part, 16, key, &this->data_collected[1]);
+  std::tie(seq_num, code, decrypted_size, response_to) = decrypt_data(&this->data_collected[start_pos], this->data_collection_expected_size - start_pos, first_decrypted_part, AES_BLOCK_SIZE, key, &this->data_collected[1]);
   // get length now that it's decrypted...
 
   switch(code)
@@ -241,13 +241,13 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
       break;
 
     default:
-      decrypted_size = this->data_collection_expected_size - sizeof(security_flag) - IV_SIZE - 16;
+      decrypted_size = this->data_collection_expected_size - sizeof(security_flag) - IV_SIZE - AES_BLOCK_SIZE;
       break;
   }
 
   if(decrypted_size > 0) {
     unsigned char decrypted_data[decrypted_size]{0};
-    decrypt_data(&this->data_collected[start_pos + 16], this->data_collection_expected_size - start_pos - 16, decrypted_data, decrypted_size, key, &this->data_collected[1]);
+    decrypt_data(&this->data_collected[start_pos + AES_BLOCK_SIZE], this->data_collection_expected_size - start_pos - AES_BLOCK_SIZE, decrypted_data, decrypted_size, key, &this->data_collected[1]);
   
     switch(code) {
       case TuyaBLECode::FUN_SENDER_DEVICE_INFO:
