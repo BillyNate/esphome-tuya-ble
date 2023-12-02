@@ -113,11 +113,15 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
 
     bool has_device(uint64_t mac_address);
 
+    void connect_device(const esp32_ble_tracker::ESPBTDevice &device);
+
     struct tuya_ble_tracker::TuyaBleDevice *get_device(uint64_t mac_address);
 
     void device_request_info(uint64_t mac_address);
 
     void device_switch(uint64_t mac_address, bool value);
+
+    bool device_has_session_key(uint64_t mac_address);
 
     void disconnect_when_appropriate();
 

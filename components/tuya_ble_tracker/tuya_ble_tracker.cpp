@@ -26,21 +26,11 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   ble_device->last_detected = esphome::millis();
   ble_device->rssi = device.get_rssi();
 
-  if(this->found_devices.count(mac_address) < 1) {
+  if(!this->client->device_has_session_key(mac_address)) {
+    ESP_LOGD(TAG, "Found BLE device %s - %s. RSSI: %d dB", device.get_name().c_str(), device.address_str().c_str(), device.get_rssi());
 
-    ESP_LOGD(TAG, "Found BLE device %s - %s. RSSI: %d dB (total devices: %d)", device.get_name().c_str(), device.address_str().c_str(), ble_device->rssi, this->found_devices.size());
-
-    if(std::all_of(ble_device->session_key, ble_device->session_key + 16, [](unsigned char x) { return x == '\0'; })) {
-      ESP_LOGD(TAG, "Device has no session key yet!");
-    }
-    else {
-      ESP_LOGD(TAG, "Device already has a session key!");
-    }
-
-    this->client->set_address(mac_address);
-    this->client->parse_device(device);
+    this->client->connect_device(device);
     this->last_connection_attempt = esphome::millis();
-    this->found_devices.insert(mac_address);
   }
 
   return true;

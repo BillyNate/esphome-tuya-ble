@@ -43,8 +43,7 @@ void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
 }
 
 void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag) {
-  
-  
+
   size_t inflated_size = META_SIZE + size + CRC_SIZE + (16 - ((META_SIZE + size + CRC_SIZE) % 16)); // 12 bytes of meta data + size of data + 2 bytes crc + padding
   unsigned char raw[inflated_size]{0};
 
@@ -262,7 +261,7 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
           md5digest->get_bytes(&device->session_key[0]);
           ESP_LOGD(TAG, "Session key set!");
 
-          ESP_LOGV(TAG, "%s", binary_to_string(device->session_key, 16).c_str());
+          ESP_LOGV(TAG, "%s", binary_to_string(device->session_key, KEY_SIZE).c_str());
         }
         break;
 
@@ -294,7 +293,7 @@ void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key,
   
   ESP_LOGD(TAG, "Added: %llu from config", mac_address);
   
-  ESP_LOGV(TAG, "%s", binary_to_string(tuyaBleDevice.login_key, 16).c_str());
+  ESP_LOGV(TAG, "%s", binary_to_string(tuyaBleDevice.login_key, KEY_SIZE).c_str());
 }
 
 void TuyaBleClient::device_request_info(uint64_t mac_address) {
@@ -311,7 +310,7 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
   }
 
   // About to get DEVICE_INFO, this should be limited to whenever session_key is unusable:
-  if(std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) { // TODO: OR when session_key is expired
+  if(!this->device_has_session_key(mac_address)) { // TODO: OR when session_key is expired
     TuyaBLECode code = TuyaBLECode::FUN_SENDER_DEVICE_INFO;
     size_t data_size = 0;
     unsigned char data[data_size]{0};
@@ -328,6 +327,12 @@ void TuyaBleClient::device_switch(uint64_t mac_address, bool value) {
   unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
 
   this->write_data(TuyaBLECode::FUN_SENDER_DPS, &device->seq_num, data, dp_size, device->session_key);
+}
+
+bool TuyaBleClient::device_has_session_key(uint64_t mac_address) {
+  tuya_ble_tracker::TuyaBleDevice *device = this->get_device(mac_address);
+
+  return !std::all_of(device->session_key, device->session_key + KEY_SIZE, [](unsigned char x) { return x == '\0'; });
 }
 
 bool TuyaBleClient::has_device(uint64_t mac_address) {
@@ -347,19 +352,20 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
   if (!esp32_ble_client::BLEClientBase::gattc_event_handler(event, gattc_if, param))
     return false;
   
+  uint64_t mac_address = this->get_address();
+
   switch (event) {
     case ESP_GATTC_DISCONNECT_EVT: {
       ESP_LOGD(TAG, "Disconnected!");
-      tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
-      
-      if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) {
+
+      if(this->device_has_session_key(mac_address)) {
         this->set_address(0);
       }
     }
     case ESP_GATTC_SEARCH_CMPL_EVT:
     case ESP_GATTC_OPEN_EVT: {
       if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
-        this->device_request_info(this->get_address());
+        this->device_request_info(mac_address);
       }
       break;
     }
@@ -368,10 +374,9 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       this->collect_data(param->notify.value, param->notify.value_len);
 
       if(this->data_collection_state == DataCollectionState::COLLECTED) {
-        tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
 
-        this->process_data(this->get_address());
-        if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) {
+        this->process_data(mac_address);
+        if(this->device_has_session_key(mac_address)) {
           this->disconnect_when_appropriate();
         }
       }
@@ -379,6 +384,12 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     }
   }
   return true;
+}
+
+void TuyaBleClient::connect_device(const esp32_ble_tracker::ESPBTDevice &device) {
+
+  this->set_address(device.address_uint64());
+  this->parse_device(device);
 }
 
 void TuyaBleClient::disconnect_when_appropriate() {
@@ -403,8 +414,7 @@ void TuyaBleClient::loop() {
   // Prevent continuous reconnecting
   if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
     if(this->has_device(this->get_address())) {
-      tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
-      if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) { // TODO: OR when session_key is expired
+      if(this->device_has_session_key(this->get_address())) { // TODO: OR when session_key is expired
         return;
       }
     }
