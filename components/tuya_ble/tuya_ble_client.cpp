@@ -275,7 +275,9 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
   this->data_collection_state = DataCollectionState::NO_DATA;
 }
 
-void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key) {
+void TuyaBleClient::register_device(uint64_t mac_address, const char *local_key, uint16_t disconnect_after) {
+
+  this->disconnect_after = disconnect_after;
 
   //struct TuyaBleDevice tuyaBleDevice = { .local_key = {local_key[0], local_key[1], local_key[2], local_key[3], local_key[4], local_key[5]}, .login_key = {0}, .session_key = {0}, .seq_num = 1, .rssi = 0 };
   struct tuya_ble_tracker::TuyaBleDevice tuyaBleDevice = { };
@@ -347,6 +349,12 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
   
   switch (event) {
     case ESP_GATTC_DISCONNECT_EVT: {
+      ESP_LOGD(TAG, "Disconnected!");
+      tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
+      
+      if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) {
+        this->set_address(0);
+      }
     }
     case ESP_GATTC_SEARCH_CMPL_EVT:
     case ESP_GATTC_OPEN_EVT: {
@@ -360,9 +368,12 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       this->collect_data(param->notify.value, param->notify.value_len);
 
       if(this->data_collection_state == DataCollectionState::COLLECTED) {
+        tuya_ble_tracker::TuyaBleDevice *device = this->get_device(this->get_address());
+
         this->process_data(this->get_address());
-        this->disconnect();
-        this->set_address(0);
+        if(!std::all_of(device->session_key, device->session_key + 16, [](unsigned char x) { return x == '\0'; })) {
+          this->disconnect_when_appropriate();
+        }
       }
       break;
     }
@@ -370,9 +381,25 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
   return true;
 }
 
+void TuyaBleClient::disconnect_when_appropriate() {
+  this->should_disconnect = true;
+  this->should_disconnect_timer = esphome::millis();
+}
+
+void TuyaBleClient::disconnect_check() {
+  //ESP_LOGD(TAG, "disconnect_check. should_disconnect: %i, data_collection_state: %i, should_disconnect_timer: %i, millis: %i", this->should_disconnect, this->data_collection_state, this->should_disconnect_timer, esphome::millis());
+  if(this->should_disconnect && this->data_collection_state == DataCollectionState::NO_DATA && esphome::millis() > this->should_disconnect_timer + this->disconnect_after) {
+    //this->set_address(0);
+    this->disconnect();
+    //this->set_state(esp32_ble_tracker::ClientState::IDLE);
+    this->should_disconnect = false;
+  }
+}
+
 void TuyaBleClient::set_disconnect_callback(std::function<void()> &&f) { this->disconnect_callback = std::move(f); }
 
 void TuyaBleClient::loop() {
+  this->disconnect_check();
   // Prevent continuous reconnecting
   if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
     if(this->has_device(this->get_address())) {

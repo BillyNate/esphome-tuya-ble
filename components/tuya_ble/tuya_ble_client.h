@@ -109,7 +109,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
 
     static std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv);
   
-    void register_device(uint64_t mac_address, const char *local_key);
+    void register_device(uint64_t mac_address, const char *local_key, uint16_t disconnect_after);
 
     bool has_device(uint64_t mac_address);
 
@@ -119,11 +119,19 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
 
     void device_switch(uint64_t mac_address, bool value);
 
+    void disconnect_when_appropriate();
+
     void set_disconnect_callback(std::function<void()> &&f);
 
   protected:
 
     DataCollectionState data_collection_state = DataCollectionState::NO_DATA;
+
+    bool should_disconnect = false;
+
+    uint16_t disconnect_after = 0;
+
+    uint32_t should_disconnect_timer = 0;
 
     static void write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size);
 
@@ -132,6 +140,8 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
     void collect_data(unsigned char *data, size_t size);
 
     void process_data(uint64_t mac_address);
+
+    void disconnect_check();
 };
 
 }  // namespace tuya_ble

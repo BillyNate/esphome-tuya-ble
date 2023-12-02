@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import esp32_ble_tracker, esp32_ble_client, tuya_ble_tracker
-from esphome.const import CONF_ID, CONF_MAC_ADDRESS
+from esphome.const import CONF_ID, CONF_MAC_ADDRESS, CONF_TIMEOUT
 
 AUTO_LOAD = ["esp32_ble_client", "md5"]
 DEPENDENCIES = ["tuya_ble_tracker", "esp32"]
@@ -21,6 +21,9 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(TuyaBleClient),
             cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
             cv.Required(CONF_LOCAL_KEY): cv.string,
+            cv.Optional(
+                CONF_TIMEOUT, default="2000ms"
+            ): cv.positive_time_period_milliseconds,
         }
     )
     .extend(esp32_ble_tracker.ESP_BLE_DEVICE_SCHEMA)
@@ -36,6 +39,7 @@ async def to_code(config):
         var.register_device(
             config[CONF_MAC_ADDRESS].as_hex,
             config[CONF_LOCAL_KEY],
+            config[CONF_TIMEOUT],
         )
     )
 
