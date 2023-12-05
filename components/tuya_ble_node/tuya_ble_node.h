@@ -3,7 +3,7 @@
 #include "esphome/core/log.h"
 #include "esphome/core/component.h"
 #include "esphome/components/md5/md5.h"
-#include "esphome/components/tuya_ble/helpers.h"
+#include "esphome/components/tuya_ble_client/helpers.h"
 #include "esphome/components/tuya_ble_tracker/tuya_ble_tracker.h"
 
 namespace esphome {

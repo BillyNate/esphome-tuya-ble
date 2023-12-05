@@ -11,7 +11,7 @@
 #include "helpers.h"
 
 namespace esphome {
-namespace tuya_ble {
+namespace tuya_ble_client {
 
 using md5::MD5Digest;
 
@@ -151,5 +151,5 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
     void disconnect_check();
 };
 
-}  // namespace tuya_ble
+}  // namespace tuya_ble_client
 }  // namespace esphome

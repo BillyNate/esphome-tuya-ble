@@ -6,9 +6,9 @@ from esphome.const import CONF_ID, CONF_MAC_ADDRESS, CONF_TIMEOUT
 AUTO_LOAD = ["esp32_ble_client", "md5"]
 DEPENDENCIES = ["tuya_ble_tracker", "esp32"]
 
-tuya_ble_ns = cg.esphome_ns.namespace("tuya_ble")
+tuya_ble_client_ns = cg.esphome_ns.namespace("tuya_ble_client")
 
-TuyaBleClient = tuya_ble_ns.class_("TuyaBleClient", esp32_ble_client.BLEClientBase)
+TuyaBleClient = tuya_ble_client_ns.class_("TuyaBleClient", esp32_ble_client.BLEClientBase)
 
 CONF_LOCAL_KEY = 'local_key'
 
@@ -29,7 +29,7 @@ CONFIG_SCHEMA = (
     .extend(cv.COMPONENT_SCHEMA)
 )
 
-CONF_TUYA_BLE_CLIENT_ID = "tuya_ble_id"
+CONF_TUYA_BLE_CLIENT_ID = "tuya_ble_client_id"
 
 TUYA_BLE_CLIENT_SCHEMA = cv.Schema(
     {

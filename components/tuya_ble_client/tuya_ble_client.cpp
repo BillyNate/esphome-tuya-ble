@@ -1,7 +1,7 @@
 #include "tuya_ble_client.h"
 
 namespace esphome {
-namespace tuya_ble {
+namespace tuya_ble_client {
 
 static const char *const TAG = "tuya_ble_client";
 
@@ -414,5 +414,5 @@ void TuyaBleClient::loop() {
   esp32_ble_client::BLEClientBase::loop();
 }
 
-}  // namespace tuya_ble
+}  // namespace tuya_ble_client
 }  // namespace esphome
