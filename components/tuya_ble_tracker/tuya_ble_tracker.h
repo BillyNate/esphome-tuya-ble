@@ -24,13 +24,13 @@ class TYBleNode {
 class TYBleClient {
   espbt::ClientState state_;
   public:
-    virtual TYBleNode *get_device(uint64_t mac_address);
-    virtual bool has_device(uint64_t mac_address) = 0;
+    virtual TYBleNode *get_node(uint64_t mac_address);
+    virtual bool has_node(uint64_t mac_address) = 0;
     virtual void connect_device(const esp32_ble_tracker::ESPBTDevice &device);
     virtual void set_address(uint64_t address) = 0;
     virtual bool connected() { return this->state_ == espbt::ClientState::ESTABLISHED; }
     virtual void disconnect() = 0;
-    virtual bool device_has_session_key(uint64_t mac_address);
+    virtual bool node_has_session_key(uint64_t mac_address);
     virtual void set_disconnect_callback(std::function<void()> &&f);
     virtual bool parse_device(const espbt::ESPBTDevice &device);
     espbt::ClientState state() const { return state_; }

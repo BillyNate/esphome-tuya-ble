@@ -77,7 +77,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
   esp32_ble_client::BLECharacteristic *notification_char;
   esp32_ble_client::BLECharacteristic *write_char;
 
-  std::map<uint64_t, tuya_ble_tracker::TYBleNode*> devices{};
+  std::map<uint64_t, tuya_ble_tracker::TYBleNode*> nodes{};
   std::vector<unsigned char> data_collected;
   uint8_t data_collection_incrementor = 0;
   uint32_t data_collection_expected_size = 0;
@@ -114,17 +114,17 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
     
     void set_disconnect_after(uint16_t disconnect_after);
 
-    bool has_device(uint64_t mac_address);
+    bool has_node(uint64_t mac_address);
 
     void connect_device(const esp32_ble_tracker::ESPBTDevice &device);
 
-    tuya_ble_tracker::TYBleNode *get_device(uint64_t mac_address);
+    tuya_ble_tracker::TYBleNode *get_node(uint64_t mac_address);
 
-    void device_request_info(uint64_t mac_address);
+    void node_request_info(uint64_t mac_address);
 
-    void device_switch(uint64_t mac_address, bool value);
+    void node_switch(uint64_t mac_address, bool value);
 
-    bool device_has_session_key(uint64_t mac_address);
+    bool node_has_session_key(uint64_t mac_address);
 
     void disconnect_when_appropriate();
 

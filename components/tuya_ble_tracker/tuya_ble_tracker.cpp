@@ -17,16 +17,16 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 
   uint64_t mac_address = device.address_uint64();
 
-  if(!this->client->has_device(mac_address)) {
+  if(!this->client->has_node(mac_address)) {
     ESP_LOGV(TAG, "Found BLE device %s - %s. RSSI: %d dB (rejected)", device.get_name().c_str(), device.address_str().c_str(), device.get_rssi());
     return false;
   }
 
-  TYBleNode *ble_device = this->client->get_device(mac_address);
-  ble_device->last_detected = esphome::millis();
-  ble_device->rssi = device.get_rssi();
+  TYBleNode *ble_node = this->client->get_node(mac_address);
+  ble_node->last_detected = esphome::millis();
+  ble_node->rssi = device.get_rssi();
 
-  if(!this->client->device_has_session_key(mac_address)) {
+  if(!this->client->node_has_session_key(mac_address)) {
     ESP_LOGD(TAG, "Found BLE device %s - %s. RSSI: %d dB", device.get_name().c_str(), device.address_str().c_str(), device.get_rssi());
 
     this->client->connect_device(device);

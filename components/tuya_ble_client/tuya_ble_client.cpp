@@ -209,19 +209,19 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
     return;
   }
   
-  tuya_ble_tracker::TYBleNode *device = this->get_device(mac_address);
+  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
 
   uint8_t security_flag = (uint8_t)this->data_collected[0];
 
   unsigned char *key;
   if(security_flag == Security::LOGIN_KEY) {
-    key = device->login_key;
+    key = node->login_key;
   }
   else if(security_flag == Security::AUTH_KEY) {
     //TODO: set auth key?
   }
   else {
-    key = device->session_key;
+    key = node->session_key;
   }
   
   
@@ -255,13 +255,13 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
           MD5Digest *md5digest = new MD5Digest();
     
           md5digest->init();
-          md5digest->add(device->local_key, 6);
+          md5digest->add(node->local_key, 6);
           md5digest->add(&decrypted_data[2], 6);
           md5digest->calculate();
-          md5digest->get_bytes(&device->session_key[0]);
+          md5digest->get_bytes(&node->session_key[0]);
           ESP_LOGD(TAG, "Session key set!");
 
-          ESP_LOGV(TAG, "%s", binary_to_string(device->session_key, KEY_SIZE).c_str());
+          ESP_LOGV(TAG, "%s", binary_to_string(node->session_key, KEY_SIZE).c_str());
         }
         break;
 
@@ -276,7 +276,7 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
 
 void TuyaBleClient::register_node(uint64_t mac_address, tuya_ble_tracker::TYBleNode *tuyaBleNode) {
 
-  this->devices.insert(std::make_pair(mac_address, tuyaBleNode));
+  this->nodes.insert(std::make_pair(mac_address, tuyaBleNode));
   
   ESP_LOGD(TAG, "Added: %llu from config", mac_address);
 }
@@ -286,12 +286,12 @@ void TuyaBleClient::set_disconnect_after(uint16_t disconnect_after) {
   this->disconnect_after = disconnect_after;
 }
 
-void TuyaBleClient::device_request_info(uint64_t mac_address) {
+void TuyaBleClient::node_request_info(uint64_t mac_address) {
   this->notification_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_notification_char));
   this->write_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_write_char));
 
-  tuya_ble_tracker::TYBleNode *device = this->get_device(mac_address);
-  device->seq_num = 1;
+  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
+  node->seq_num = 1;
 
   ESP_LOGD(TAG, "Listen for notifications");
   esp_err_t status = esp_ble_gattc_register_for_notify(this->get_gattc_if(), this->get_remote_bda(), this->notification_char->handle);
@@ -300,7 +300,7 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
   }
 
   // About to get DEVICE_INFO, this should be limited to whenever session_key is unusable:
-  if(!this->device_has_session_key(mac_address)) { // TODO: OR when session_key is expired
+  if(!this->node_has_session_key(mac_address)) { // TODO: OR when session_key is expired
     ESP_LOGD(TAG, "Requesting device info...");
 
     TuyaBLECode code = TuyaBLECode::FUN_SENDER_DEVICE_INFO;
@@ -308,31 +308,31 @@ void TuyaBleClient::device_request_info(uint64_t mac_address) {
     unsigned char data[data_size]{0};
     int protocol_version = 2; // protocol version is usually 3
 
-    this->write_data(code, &device->seq_num, data, data_size, device->login_key, 0, protocol_version);
+    this->write_data(code, &node->seq_num, data, data_size, node->login_key, 0, protocol_version);
   }
 }
 
-void TuyaBleClient::device_switch(uint64_t mac_address, bool value) {
-  tuya_ble_tracker::TYBleNode *device = this->get_device(mac_address);
+void TuyaBleClient::node_switch(uint64_t mac_address, bool value) {
+  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
 
   size_t dp_size = 4;
   unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
 
-  this->write_data(TuyaBLECode::FUN_SENDER_DPS, &device->seq_num, data, dp_size, device->session_key);
+  this->write_data(TuyaBLECode::FUN_SENDER_DPS, &node->seq_num, data, dp_size, node->session_key);
 }
 
-bool TuyaBleClient::device_has_session_key(uint64_t mac_address) {
-  tuya_ble_tracker::TYBleNode *device = this->get_device(mac_address);
+bool TuyaBleClient::node_has_session_key(uint64_t mac_address) {
+  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
 
-  return !std::all_of(device->session_key, device->session_key + KEY_SIZE, [](unsigned char x) { return x == '\0'; });
+  return !std::all_of(node->session_key, node->session_key + KEY_SIZE, [](unsigned char x) { return x == '\0'; });
 }
 
-bool TuyaBleClient::has_device(uint64_t mac_address) {
-  return this->devices.count(mac_address) > 0;
+bool TuyaBleClient::has_node(uint64_t mac_address) {
+  return this->nodes.count(mac_address) > 0;
 }
 
-tuya_ble_tracker::TYBleNode *TuyaBleClient::get_device(uint64_t mac_address) {
-  return this->devices[mac_address];
+tuya_ble_tracker::TYBleNode *TuyaBleClient::get_node(uint64_t mac_address) {
+  return this->nodes[mac_address];
 }
 
 void TuyaBleClient::on_shutdown() {
@@ -350,14 +350,14 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     case ESP_GATTC_DISCONNECT_EVT: {
       ESP_LOGD(TAG, "Disconnected!");
 
-      if(this->device_has_session_key(mac_address)) {
+      if(this->node_has_session_key(mac_address)) {
         this->set_address(0);
       }
     }
     case ESP_GATTC_SEARCH_CMPL_EVT:
     case ESP_GATTC_OPEN_EVT: {
       if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
-        this->device_request_info(mac_address);
+        this->node_request_info(mac_address);
       }
       break;
     }
@@ -368,7 +368,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if(this->data_collection_state == DataCollectionState::COLLECTED) {
 
         this->process_data(mac_address);
-        if(this->device_has_session_key(mac_address)) {
+        if(this->node_has_session_key(mac_address)) {
           this->disconnect_when_appropriate();
         }
       }
@@ -405,8 +405,8 @@ void TuyaBleClient::loop() {
   this->disconnect_check();
   // Prevent continuous reconnecting
   if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
-    if(this->has_device(this->get_address())) {
-      if(this->device_has_session_key(this->get_address())) { // TODO: OR when session_key is expired
+    if(this->has_node(this->get_address())) {
+      if(this->node_has_session_key(this->get_address())) { // TODO: OR when session_key is expired
         return;
       }
     }
