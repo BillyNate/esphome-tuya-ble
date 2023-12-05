@@ -209,7 +209,7 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
     return;
   }
   
-  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
+  TYBleNode *node = this->get_node(mac_address);
 
   uint8_t security_flag = (uint8_t)this->data_collected[0];
 
@@ -274,7 +274,7 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
   this->data_collection_state = DataCollectionState::NO_DATA;
 }
 
-void TuyaBleClient::register_node(uint64_t mac_address, tuya_ble_tracker::TYBleNode *tuyaBleNode) {
+void TuyaBleClient::register_node(uint64_t mac_address, TYBleNode *tuyaBleNode) {
 
   this->nodes.insert(std::make_pair(mac_address, tuyaBleNode));
   
@@ -290,7 +290,7 @@ void TuyaBleClient::node_request_info(uint64_t mac_address) {
   this->notification_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_notification_char));
   this->write_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_write_char));
 
-  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
+  TYBleNode *node = this->get_node(mac_address);
   node->seq_num = 1;
 
   ESP_LOGD(TAG, "Listen for notifications");
@@ -313,7 +313,7 @@ void TuyaBleClient::node_request_info(uint64_t mac_address) {
 }
 
 void TuyaBleClient::node_switch(uint64_t mac_address, bool value) {
-  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
+  TYBleNode *node = this->get_node(mac_address);
 
   size_t dp_size = 4;
   unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
@@ -322,7 +322,7 @@ void TuyaBleClient::node_switch(uint64_t mac_address, bool value) {
 }
 
 bool TuyaBleClient::node_has_session_key(uint64_t mac_address) {
-  tuya_ble_tracker::TYBleNode *node = this->get_node(mac_address);
+  TYBleNode *node = this->get_node(mac_address);
 
   return !std::all_of(node->session_key, node->session_key + KEY_SIZE, [](unsigned char x) { return x == '\0'; });
 }
@@ -331,7 +331,7 @@ bool TuyaBleClient::has_node(uint64_t mac_address) {
   return this->nodes.count(mac_address) > 0;
 }
 
-tuya_ble_tracker::TYBleNode *TuyaBleClient::get_node(uint64_t mac_address) {
+TYBleNode *TuyaBleClient::get_node(uint64_t mac_address) {
   return this->nodes[mac_address];
 }
 

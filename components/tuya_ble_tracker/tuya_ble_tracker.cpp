@@ -49,7 +49,7 @@ void TuyaBleTracker::setup() {
 void TuyaBleTracker::loop() {
   if(this->has_client) {
     //ESP_LOGD(TAG, "Connection state: %i, millis: %i, last_connection_attempt: %i, connected: %i", this->client->state(), esphome::millis(), this->last_connection_attempt, this->client->connected());
-    if(this->client->state() == espbt::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {
+    if(this->client->state() == esp32_ble_tracker::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {
       if(!this->client->connected()) {
         ESP_LOGD(TAG, "Failed to connect");
         this->client->disconnect();

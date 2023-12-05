@@ -9,19 +9,20 @@
 namespace esphome {
 namespace tuya_ble_node {
 
+using namespace esphome::tuya_ble;
 using md5::MD5Digest;
 
-class TuyaBleNode : public tuya_ble_tracker::TYBleNode, public Component {
+class TuyaBleNode : public TYBleNode, public Component {
 
   public:
     void set_local_key(const char *local_key);
-    void register_client(tuya_ble_tracker::TYBleClient *client) {
+    void register_client(TYBleClient *client) {
       ESP_LOGD("tuya_ble_node", "Client registered in node!");
       this->client = client;
     }
 
   protected:
-    tuya_ble_tracker::TYBleClient *client;
+    TYBleClient *client;
 };
 
 }  // namespace tuya_ble_node
