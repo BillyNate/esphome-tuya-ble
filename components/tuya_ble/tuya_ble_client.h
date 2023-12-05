@@ -77,7 +77,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
   esp32_ble_client::BLECharacteristic *notification_char;
   esp32_ble_client::BLECharacteristic *write_char;
 
-  std::map<uint64_t, struct tuya_ble_tracker::TuyaBleDevice> devices{};
+  std::map<uint64_t, tuya_ble_tracker::TYBleNode*> devices{};
   std::vector<unsigned char> data_collected;
   uint8_t data_collection_incrementor = 0;
   uint32_t data_collection_expected_size = 0;
@@ -110,13 +110,15 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public tuy
 
     static std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv);
   
-    void register_device(uint64_t mac_address, const char *local_key, uint16_t disconnect_after);
+    void register_node(uint64_t mac_address, tuya_ble_tracker::TYBleNode *tuyaBleNode);
+    
+    void set_disconnect_after(uint16_t disconnect_after);
 
     bool has_device(uint64_t mac_address);
 
     void connect_device(const esp32_ble_tracker::ESPBTDevice &device);
 
-    struct tuya_ble_tracker::TuyaBleDevice *get_device(uint64_t mac_address);
+    tuya_ble_tracker::TYBleNode *get_device(uint64_t mac_address);
 
     void device_request_info(uint64_t mac_address);
 

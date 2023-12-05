@@ -10,20 +10,21 @@ namespace tuya_ble_tracker {
 
 namespace espbt = esphome::esp32_ble_tracker;
 
-struct TuyaBleDevice {
-  unsigned char local_key[6];
-  unsigned char login_key[16];
-  unsigned char session_key[16];
-  // There's supposedly also an auth_key, but since it's not used, it's not declared either
-  uint32_t seq_num;
-  uint32_t last_detected;
-  int rssi;
+class TYBleNode {
+  public:
+    unsigned char local_key[6];
+    unsigned char login_key[16];
+    unsigned char session_key[16];
+    // There's supposedly also an auth_key, but since it's not used, it's not declared either
+    uint32_t seq_num;
+    uint32_t last_detected;
+    int rssi;
 };
 
 class TYBleClient {
   espbt::ClientState state_;
   public:
-    virtual struct TuyaBleDevice *get_device(uint64_t mac_address);
+    virtual TYBleNode *get_device(uint64_t mac_address);
     virtual bool has_device(uint64_t mac_address) = 0;
     virtual void connect_device(const esp32_ble_tracker::ESPBTDevice &device);
     virtual void set_address(uint64_t address) = 0;

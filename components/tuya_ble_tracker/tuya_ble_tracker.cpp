@@ -22,7 +22,7 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
     return false;
   }
 
-  TuyaBleDevice *ble_device = this->client->get_device(mac_address);
+  TYBleNode *ble_device = this->client->get_device(mac_address);
   ble_device->last_detected = esphome::millis();
   ble_device->rssi = device.get_rssi();
 

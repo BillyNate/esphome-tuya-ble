@@ -18,5 +18,9 @@ esp32_ble_tracker:
 tuya_ble_tracker:
 
 tuya_ble:
+  - id: tuya_client
+
+tuya_ble_node:
   - mac_address: !secret mac_address
     local_key: !secret local_key
+    tuya_ble_id: tuya_client

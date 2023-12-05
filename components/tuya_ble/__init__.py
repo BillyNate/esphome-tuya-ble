@@ -19,8 +19,6 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(TuyaBleClient),
-            cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
-            cv.Required(CONF_LOCAL_KEY): cv.string,
             cv.Optional(
                 CONF_TIMEOUT, default="2000ms"
             ): cv.positive_time_period_milliseconds,
@@ -31,17 +29,29 @@ CONFIG_SCHEMA = (
     .extend(cv.COMPONENT_SCHEMA)
 )
 
+CONF_TUYA_BLE_CLIENT_ID = "tuya_ble_id"
+
+TUYA_BLE_CLIENT_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_TUYA_BLE_CLIENT_ID): cv.use_id(TuyaBleClient),
+    }
+)
+
+async def register_tuya_node(var, config):
+    client = await cg.get_variable(config[CONF_TUYA_BLE_CLIENT_ID])
+    cg.add(
+        client.register_node(
+            config[CONF_MAC_ADDRESS].as_hex,
+            var,
+        )
+    )
+    return var
+
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    cg.add(
-        var.register_device(
-            config[CONF_MAC_ADDRESS].as_hex,
-            config[CONF_LOCAL_KEY],
-            config[CONF_TIMEOUT],
-        )
-    )
+    var.set_disconnect_after(config[CONF_TIMEOUT])
 
     await esp32_ble_tracker.register_client(var, config)
     await tuya_ble_tracker.register_client(var, config)
