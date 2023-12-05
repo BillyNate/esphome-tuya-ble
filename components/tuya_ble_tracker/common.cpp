@@ -1,4 +1,4 @@
-#include "helpers.h"
+#include "common.h"
 
 namespace esphome {
 namespace tuya_ble {
