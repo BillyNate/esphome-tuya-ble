@@ -59,6 +59,10 @@ class TYBleNode {
     uint32_t seq_num;
     uint32_t last_detected;
     int rssi;
+
+    virtual bool has_session_key();
+    virtual void request_info();
+    virtual void toggle(bool value);
 };
 
 class TYBleClient {
@@ -70,9 +74,9 @@ class TYBleClient {
     virtual void set_address(uint64_t address) = 0;
     virtual bool connected() { return this->state_ == esp32_ble_tracker::ClientState::ESTABLISHED; }
     virtual void disconnect() = 0;
-    virtual bool node_has_session_key(uint64_t mac_address);
     virtual void set_disconnect_callback(std::function<void()> &&f);
     virtual bool parse_device(const esp32_ble_tracker::ESPBTDevice &device);
+    virtual void write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to = 0, int protocol_version = 3);
     esp32_ble_tracker::ClientState state() const { return state_; }
 };
 

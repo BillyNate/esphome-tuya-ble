@@ -79,15 +79,12 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
 
     TYBleNode *get_node(uint64_t mac_address);
 
-    void node_request_info(uint64_t mac_address);
-
-    void node_switch(uint64_t mac_address, bool value);
-
-    bool node_has_session_key(uint64_t mac_address);
-
     void disconnect_when_appropriate();
 
     void set_disconnect_callback(std::function<void()> &&f);
+
+    // write_data should actually not be public, but it needs to be accessible by BleNode. Maybe setting it as a callback would be a better solution...
+    void write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to = 0, int protocol_version = 3);
 
   protected:
 
@@ -101,11 +98,11 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
 
     static void write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size);
 
-    void write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to = 0, int protocol_version = 3);
-
     void collect_data(unsigned char *data, size_t size);
 
-    void process_data(uint64_t mac_address);
+    void process_data(TYBleNode *node);
+
+    void register_for_notifications();
 
     void disconnect_check();
 };

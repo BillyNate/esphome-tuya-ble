@@ -203,13 +203,11 @@ void TuyaBleClient::collect_data(unsigned char *data, size_t size) {
   }
 }
 
-void TuyaBleClient::process_data(uint64_t mac_address) {
+void TuyaBleClient::process_data(TYBleNode *node) {
   if(this->data_collection_state != DataCollectionState::COLLECTED || this->data_collection_expected_size <= IV_SIZE + 1) { // Should be a multiple of 16 as well?
     ESP_LOGW(TAG, "Attempt to process received data aborted");
     return;
   }
-  
-  TYBleNode *node = this->get_node(mac_address);
 
   uint8_t security_flag = (uint8_t)this->data_collected[0];
 
@@ -274,6 +272,17 @@ void TuyaBleClient::process_data(uint64_t mac_address) {
   this->data_collection_state = DataCollectionState::NO_DATA;
 }
 
+void TuyaBleClient::register_for_notifications() {
+  this->notification_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_notification_char));
+  this->write_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_write_char));
+
+  ESP_LOGD(TAG, "Listen for notifications");
+  esp_err_t status = esp_ble_gattc_register_for_notify(this->get_gattc_if(), this->get_remote_bda(), this->notification_char->handle);
+  if(status) {
+    ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_register_for_notify failed, status=%d", this->get_conn_id(), this->address_str_.c_str(), status);
+  }
+}
+
 void TuyaBleClient::register_node(uint64_t mac_address, TYBleNode *tuyaBleNode) {
 
   this->nodes.insert(std::make_pair(mac_address, tuyaBleNode));
@@ -284,47 +293,6 @@ void TuyaBleClient::register_node(uint64_t mac_address, TYBleNode *tuyaBleNode) 
 void TuyaBleClient::set_disconnect_after(uint16_t disconnect_after) {
 
   this->disconnect_after = disconnect_after;
-}
-
-void TuyaBleClient::node_request_info(uint64_t mac_address) {
-  this->notification_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_notification_char));
-  this->write_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_write_char));
-
-  TYBleNode *node = this->get_node(mac_address);
-  node->seq_num = 1;
-
-  ESP_LOGD(TAG, "Listen for notifications");
-  esp_err_t status = esp_ble_gattc_register_for_notify(this->get_gattc_if(), this->get_remote_bda(), this->notification_char->handle);
-  if(status) {
-    ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_register_for_notify failed, status=%d", this->get_conn_id(), this->address_str_.c_str(), status);
-  }
-
-  // About to get DEVICE_INFO, this should be limited to whenever session_key is unusable:
-  if(!this->node_has_session_key(mac_address)) { // TODO: OR when session_key is expired
-    ESP_LOGD(TAG, "Requesting device info...");
-
-    TuyaBLECode code = TuyaBLECode::FUN_SENDER_DEVICE_INFO;
-    size_t data_size = 0;
-    unsigned char data[data_size]{0};
-    int protocol_version = 2; // protocol version is usually 3
-
-    this->write_data(code, &node->seq_num, data, data_size, node->login_key, 0, protocol_version);
-  }
-}
-
-void TuyaBleClient::node_switch(uint64_t mac_address, bool value) {
-  TYBleNode *node = this->get_node(mac_address);
-
-  size_t dp_size = 4;
-  unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
-
-  this->write_data(TuyaBLECode::FUN_SENDER_DPS, &node->seq_num, data, dp_size, node->session_key);
-}
-
-bool TuyaBleClient::node_has_session_key(uint64_t mac_address) {
-  TYBleNode *node = this->get_node(mac_address);
-
-  return !std::all_of(node->session_key, node->session_key + KEY_SIZE, [](unsigned char x) { return x == '\0'; });
 }
 
 bool TuyaBleClient::has_node(uint64_t mac_address) {
@@ -345,19 +313,22 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     return false;
   
   uint64_t mac_address = this->get_address();
+  TYBleNode *node = this->get_node(mac_address);
 
   switch (event) {
     case ESP_GATTC_DISCONNECT_EVT: {
       ESP_LOGD(TAG, "Disconnected!");
 
-      if(this->node_has_session_key(mac_address)) {
+      if(node->has_session_key()) {
         this->set_address(0);
       }
     }
     case ESP_GATTC_SEARCH_CMPL_EVT:
     case ESP_GATTC_OPEN_EVT: {
       if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
-        this->node_request_info(mac_address);
+        this->register_for_notifications();
+        node->seq_num = 1;
+        node->request_info();
       }
       break;
     }
@@ -367,8 +338,8 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
 
       if(this->data_collection_state == DataCollectionState::COLLECTED) {
 
-        this->process_data(mac_address);
-        if(this->node_has_session_key(mac_address)) {
+        this->process_data(node);
+        if(node->has_session_key()) {
           this->disconnect_when_appropriate();
         }
       }
@@ -406,7 +377,8 @@ void TuyaBleClient::loop() {
   // Prevent continuous reconnecting
   if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
     if(this->has_node(this->get_address())) {
-      if(this->node_has_session_key(this->get_address())) { // TODO: OR when session_key is expired
+      TYBleNode *node = this->get_node(this->get_address());
+      if(node->has_session_key()) { // TODO: OR when session_key is expired
         return;
       }
     }

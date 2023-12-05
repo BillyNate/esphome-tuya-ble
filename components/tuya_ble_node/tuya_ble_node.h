@@ -15,7 +15,14 @@ using md5::MD5Digest;
 class TuyaBleNode : public TYBleNode, public Component {
 
   public:
+    bool has_session_key();
+
     void set_local_key(const char *local_key);
+
+    void request_info();
+
+    void toggle(bool value);
+
     void register_client(TYBleClient *client) {
       ESP_LOGD("tuya_ble_node", "Client registered in node!");
       this->client = client;
