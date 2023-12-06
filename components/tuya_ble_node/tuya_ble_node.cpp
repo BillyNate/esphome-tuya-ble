@@ -35,6 +35,16 @@ void TuyaBleNode::request_info() {
 
 void TuyaBleNode::toggle(bool value) {
 
+  if(!this->has_client) {
+    ESP_LOGW(TAG, "No client registered at node");
+    return;
+  }
+
+  if(!this->client->connected()) {
+    ESP_LOGW(TAG, "Node not connected: %i", this->client->state());
+    return;
+  }
+
   size_t dp_size = 4;
   unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
 

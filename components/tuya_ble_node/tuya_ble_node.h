@@ -26,10 +26,12 @@ class TuyaBleNode : public TYBleNode, public Component {
     void register_client(TYBleClient *client) {
       ESP_LOGD("tuya_ble_node", "Client registered in node!");
       this->client = client;
+      this->has_client = true;
     }
 
   protected:
     TYBleClient *client;
+    bool has_client = false;
 };
 
 }  // namespace tuya_ble_node

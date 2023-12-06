@@ -26,6 +26,14 @@ CONFIG_SCHEMA = (
     .extend(tuya_ble_client.TUYA_BLE_CLIENT_SCHEMA)
 )
 
+CONF_TUYA_BLE_NODE_ID = "tuya_ble_node_id"
+
+TUYA_BLE_NODE_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_TUYA_BLE_NODE_ID): cv.use_id(TuyaBleNode),
+    }
+)
+
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)

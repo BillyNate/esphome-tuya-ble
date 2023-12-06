@@ -55,7 +55,11 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
 
     void connect() { esp32_ble_client::BLEClientBase::connect(); }
 
+    bool connected() { return esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED; }
+
     void disconnect() { esp32_ble_client::BLEClientBase::disconnect(); }
+
+    esp32_ble_tracker::ClientState state() const { return esp32_ble_client::BLEClientBase::state(); }
 
     // Override existing methods:
     bool gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) override;

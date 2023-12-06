@@ -21,6 +21,19 @@ tuya_ble_client:
   - id: tuya_client
 
 tuya_ble_node:
-  - mac_address: !secret mac_address
+  - id: tuya_ble_light
+    mac_address: !secret mac_address
     local_key: !secret local_key
     tuya_ble_client_id: tuya_client
+
+output:
+  - id: tuya_light_as_output
+    platform: tuya_ble_node
+    tuya_ble_node_id: tuya_ble_light
+
+interval:
+  - interval: 20s
+    then:
+      - output.turn_off: tuya_light_as_output
+      - delay: 10s
+      - output.turn_on: tuya_light_as_output
