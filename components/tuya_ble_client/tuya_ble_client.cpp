@@ -134,6 +134,8 @@ void TuyaBleClient::write_to_char(esp32_ble_client::BLECharacteristic *write_cha
 
 void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to, int protocol_version) {
 
+  ESP_LOGV(TAG, "write_data: %s", binary_to_string(data, size).c_str());
+  
   size_t encrypted_size = META_SIZE + size + CRC_SIZE + (AES_BLOCK_SIZE - ((META_SIZE + size + CRC_SIZE) % AES_BLOCK_SIZE)) + 1 + IV_SIZE;
   unsigned char encrypted_data[encrypted_size + 2]{0};
   uint8_t security_flag = Security::SESSION_KEY;
