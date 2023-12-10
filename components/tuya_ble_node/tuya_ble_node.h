@@ -26,6 +26,8 @@ class TuyaBleNode : public TYBleNode, public Component {
 
     void set_local_key(const char *local_key);
 
+    void set_max_queued(uint8_t max);
+
     void request_info();
 
     void toggle(bool value);
@@ -39,6 +41,7 @@ class TuyaBleNode : public TYBleNode, public Component {
   protected:
     TYBleClient *client;
     bool has_client = false;
+    uint8_t max_queued = 1;
 
     void enqueue_command(TYBleCommand *command);
 };

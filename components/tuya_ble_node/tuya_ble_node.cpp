@@ -7,6 +7,10 @@ static const char *const TAG = "tuya_ble_node";
 
 void TuyaBleNode::enqueue_command(TYBleCommand *command) {
   
+  while(this->command_queue.size() > this->max_queued) {
+    this->command_queue.pop_back();
+  }
+
   this->command_queue.push_front(*command);
   
   ESP_LOGV(TAG, "enqueue_command: %s", binary_to_string(&command->data[0], command->data.size()).c_str());
@@ -48,6 +52,10 @@ void TuyaBleNode::set_local_key(const char *local_key) {
   md5digest->get_bytes(&this->login_key[0]);
   
   ESP_LOGV(TAG, "Got local key (%s), turned into login key (%s)", local_key, binary_to_string(this->login_key, 16).c_str());
+}
+
+void TuyaBleNode::set_max_queued(uint8_t max) {
+  this->max_queued = max;
 }
 
 void TuyaBleNode::request_info() {
