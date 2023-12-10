@@ -375,13 +375,24 @@ void TuyaBleClient::disconnect_check() {
 void TuyaBleClient::set_disconnect_callback(std::function<void()> &&f) { this->disconnect_callback = std::move(f); }
 
 void TuyaBleClient::loop() {
+  uint64_t address = this->get_address();
+
   this->disconnect_check();
-  // Prevent continuous reconnecting
-  if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && this->get_address() != 0) {
-    if(this->has_node(this->get_address())) {
-      TYBleNode *node = this->get_node(this->get_address());
-      if(node->has_session_key()) { // TODO: OR when session_key is expired
-        return;
+
+  if(address != 0) {
+    if(this->has_node(address)) {
+      TYBleNode *node = this->get_node(address);
+
+      if(node->has_session_key()) {
+        // Prevent continuous reconnecting
+        if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::READY_TO_CONNECT && !node->has_command()) { // TODO: OR when session_key is expired
+          return;
+        }
+
+        // Check if commands are queued for this node, and issue if needed:
+        if(this->connected() && node->has_command()) {
+          node->issue_command();
+        }
       }
     }
   }

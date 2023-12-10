@@ -5,8 +5,35 @@ namespace tuya_ble_node {
 
 static const char *const TAG = "tuya_ble_node";
 
+void TuyaBleNode::enqueue_command(TYBleCommand *command) {
+  
+  this->command_queue.push_front(*command);
+  
+  ESP_LOGV(TAG, "enqueue_command: %s", binary_to_string(&command->data[0], command->data.size()).c_str());
+}
+
+bool TuyaBleNode::has_command() {
+  return this->command_queue.size() > 0;
+}
+
 bool TuyaBleNode::has_session_key() {
   return !std::all_of(this->session_key, this->session_key + KEY_SIZE, [](unsigned char x) { return x == '\0'; });
+}
+
+void TuyaBleNode::issue_command() {
+  if(!this->has_client) {
+    ESP_LOGW(TAG, "No client registered at node");
+    return;
+  }
+
+  if(!this->has_command()) {
+    ESP_LOGW(TAG, "No commands to issue");
+  }
+
+  TYBleCommand *command = &this->command_queue.back();
+  ESP_LOGV(TAG, "issue_command: %s", binary_to_string(&command->data[0], command->data.size()).c_str());
+  this->client->write_data(command->code, &this->seq_num, &command->data[0], command->data.size(), command->key, command->response_to, command->protocol_version);
+  this->command_queue.pop_back();
 }
 
 void TuyaBleNode::set_local_key(const char *local_key) {
@@ -40,15 +67,15 @@ void TuyaBleNode::toggle(bool value) {
     return;
   }
 
-  if(!this->client->connected()) {
-    ESP_LOGW(TAG, "Node not connected: %i", this->client->state());
-    return;
-  }
+  TYBleCommand command = {
+    TuyaBLECode::FUN_SENDER_DPS,
+    { 0x14, 0x01, 0x01, (unsigned char)value },
+    this->session_key, // Since we don't mind if session_key gets updated, we directly use the pointer to this node's session_key
+    0,
+    3,
+  };
 
-  size_t dp_size = 4;
-  unsigned char data[dp_size] = { 0x14, 0x01, 0x01, (unsigned char)value };
-
-  this->client->write_data(TuyaBLECode::FUN_SENDER_DPS, &this->seq_num, data, dp_size, this->session_key);
+  this->enqueue_command(&command);
 }
 
 }  // namespace tuya_ble_node

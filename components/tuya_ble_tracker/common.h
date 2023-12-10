@@ -50,6 +50,14 @@ enum Security {
   SESSION_KEY = 0x05,
 };
 
+struct TYBleCommand {
+  TuyaBLECode code;
+  std::vector<unsigned char> data;
+  unsigned char *key;
+  uint32_t response_to;
+  int protocol_version;
+};
+
 class TYBleNode {
   public:
     unsigned char local_key[6];
@@ -60,7 +68,9 @@ class TYBleNode {
     uint32_t last_detected;
     int rssi;
 
+    virtual bool has_command();
     virtual bool has_session_key();
+    virtual void issue_command();
     virtual void request_info();
     virtual void toggle(bool value);
 };
