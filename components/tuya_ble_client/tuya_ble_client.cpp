@@ -195,7 +195,7 @@ void TuyaBleClient::collect_data(unsigned char *data, size_t size) {
   }
   memcpy(&this->data_collected[concatenated_length], &data[data_starts_at], size - data_starts_at);
   concatenated_length += (size - data_starts_at);
-  ESP_LOGD(TAG, "Collected %i/%i", concatenated_length, this->data_collection_expected_size);
+  ESP_LOGV(TAG, "Collected %i/%i", concatenated_length, this->data_collection_expected_size);
   if(concatenated_length >= this->data_collection_expected_size)
   {
     ESP_LOGD(TAG, "Data collected!");
@@ -333,7 +333,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       break;
     }
     case ESP_GATTC_NOTIFY_EVT: {
-      ESP_LOGD(TAG, "Notification received!");
+      ESP_LOGV(TAG, "Notification received!");
       this->collect_data(param->notify.value, param->notify.value_len);
 
       if(this->data_collection_state == DataCollectionState::COLLECTED) {
@@ -361,7 +361,7 @@ void TuyaBleClient::disconnect_when_appropriate() {
 }
 
 void TuyaBleClient::disconnect_check() {
-  //ESP_LOGD(TAG, "disconnect_check. should_disconnect: %i, data_collection_state: %i, should_disconnect_timer: %i, millis: %i", this->should_disconnect, this->data_collection_state, this->should_disconnect_timer, esphome::millis());
+  ESP_LOGV(TAG, "disconnect_check. should_disconnect: %i, data_collection_state: %i, should_disconnect_timer: %i, millis: %i", this->should_disconnect, this->data_collection_state, this->should_disconnect_timer, esphome::millis());
   if(this->should_disconnect && this->data_collection_state == DataCollectionState::NO_DATA && esphome::millis() > this->should_disconnect_timer + this->disconnect_after) {
     //this->set_address(0);
     this->disconnect();
