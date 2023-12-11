@@ -365,9 +365,7 @@ void TuyaBleClient::disconnect_when_appropriate() {
 void TuyaBleClient::disconnect_check() {
   ESP_LOGV(TAG, "disconnect_check. should_disconnect: %i, data_collection_state: %i, should_disconnect_timer: %i, millis: %i", this->should_disconnect, this->data_collection_state, this->should_disconnect_timer, esphome::millis());
   if(this->should_disconnect && this->data_collection_state == DataCollectionState::NO_DATA && esphome::millis() > this->should_disconnect_timer + this->disconnect_after) {
-    //this->set_address(0);
     this->disconnect();
-    //this->set_state(esp32_ble_tracker::ClientState::IDLE);
     this->should_disconnect = false;
   }
 }
