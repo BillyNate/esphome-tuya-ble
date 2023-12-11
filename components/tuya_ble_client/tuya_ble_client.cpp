@@ -287,6 +287,11 @@ void TuyaBleClient::register_for_notifications() {
 
 void TuyaBleClient::register_node(uint64_t mac_address, TYBleNode *tuyaBleNode) {
 
+  if(mac_address == 0) {
+    ESP_LOGE(TAG, "Attempted to register node with mac address 00:00:00:00:00:00");
+    return;
+  }
+
   this->nodes.insert(std::make_pair(mac_address, tuyaBleNode));
   
   ESP_LOGD(TAG, "Added: %llu from config", mac_address);
@@ -315,6 +320,10 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     return false;
   
   uint64_t mac_address = this->get_address();
+
+  if(!this->has_node(mac_address)) {
+    return true;
+  }
   TYBleNode *node = this->get_node(mac_address);
 
   switch (event) {
