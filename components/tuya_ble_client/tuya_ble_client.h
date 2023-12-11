@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iterator>
 #include <map>
 #include <tuple>
 #include "aes/esp_aes.h"
@@ -36,7 +37,8 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
   esp32_ble_client::BLECharacteristic *notification_char;
   esp32_ble_client::BLECharacteristic *write_char;
 
-  std::map<uint64_t, TYBleNode*> nodes{};
+  std::map<uint64_t, TYBleNode*> nodes;
+  std::map<uint64_t, TYBleNode*>::iterator nodes_i = nodes.begin();
   std::vector<unsigned char> data_collected;
   uint8_t data_collection_incrementor = 0;
   uint32_t data_collection_expected_size = 0;
@@ -79,7 +81,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
 
     bool has_node(uint64_t mac_address);
 
-    void connect_device(const esp32_ble_tracker::ESPBTDevice &device);
+    void connect_mac_address(const uint64_t mac_address);
 
     TYBleNode *get_node(uint64_t mac_address);
 

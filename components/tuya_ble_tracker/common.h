@@ -72,6 +72,7 @@ class TYBleNode {
     virtual bool has_session_key();
     virtual void issue_command();
     virtual void request_info();
+    virtual void reset_session_key();
     virtual void toggle(bool value);
 };
 
@@ -80,7 +81,7 @@ class TYBleClient {
   public:
     virtual TYBleNode *get_node(uint64_t mac_address);
     virtual bool has_node(uint64_t mac_address) = 0;
-    virtual void connect_device(const esp32_ble_tracker::ESPBTDevice &device);
+    virtual void connect_mac_address(const uint64_t mac_address);
     virtual void set_address(uint64_t address) = 0;
     virtual bool connected() { return this->state_ == esp32_ble_tracker::ClientState::ESTABLISHED; }
     virtual void disconnect() = 0;

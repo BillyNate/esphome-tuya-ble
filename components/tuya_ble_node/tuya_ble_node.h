@@ -30,6 +30,8 @@ class TuyaBleNode : public TYBleNode, public Component {
 
     void request_info();
 
+    void reset_session_key();
+
     void toggle(bool value);
 
     void register_client(TYBleClient *client) {

@@ -68,6 +68,10 @@ void TuyaBleNode::request_info() {
   }
 }
 
+void TuyaBleNode::reset_session_key() {
+  std::fill(this->session_key, this->session_key + KEY_SIZE, 0);
+}
+
 void TuyaBleNode::toggle(bool value) {
 
   if(!this->has_client) {

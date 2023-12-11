@@ -29,7 +29,7 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   if(!ble_node->has_session_key()) {
     ESP_LOGD(TAG, "Found BLE device %s - %s. RSSI: %d dB", device.get_name().c_str(), device.address_str().c_str(), device.get_rssi());
 
-    this->client->connect_device(device);
+    this->client->connect_mac_address(mac_address);
     this->last_connection_attempt = esphome::millis();
   }
 

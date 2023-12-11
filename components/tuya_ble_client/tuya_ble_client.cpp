@@ -338,8 +338,10 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     case ESP_GATTC_OPEN_EVT: {
       if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
         this->register_for_notifications();
-        node->seq_num = 1;
-        node->request_info();
+        if(!node->has_session_key()) {
+          node->seq_num = 1;
+          node->request_info();
+        }
       }
       break;
     }
@@ -360,10 +362,22 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
   return true;
 }
 
-void TuyaBleClient::connect_device(const esp32_ble_tracker::ESPBTDevice &device) {
+void TuyaBleClient::connect_mac_address(const uint64_t mac_address) {
+  ESP_LOGV(TAG, "Connecting to %llu", mac_address);
 
-  this->set_address(device.address_uint64());
-  this->parse_device(device);
+  TYBleNode *node = this->get_node(mac_address);
+
+  this->set_address(mac_address);
+  this->set_state(esp32_ble_tracker::ClientState::DISCOVERED);
+  this->remote_bda_[0] = (mac_address >> 40) & 0xFF;
+  this->remote_bda_[1] = (mac_address >> 32) & 0xFF;
+  this->remote_bda_[2] = (mac_address >> 24) & 0xFF;
+  this->remote_bda_[3] = (mac_address >> 16) & 0xFF;
+  this->remote_bda_[4] = (mac_address >> 8) & 0xFF;
+  this->remote_bda_[5] = (mac_address >> 0) & 0xFF;
+  this->remote_addr_type_ = BLE_ADDR_TYPE_PUBLIC;
+
+  node->reset_session_key(); // New session key every new connection?
 }
 
 void TuyaBleClient::disconnect_when_appropriate() {
@@ -384,11 +398,13 @@ void TuyaBleClient::set_disconnect_callback(std::function<void()> &&f) { this->d
 void TuyaBleClient::loop() {
   uint64_t address = this->get_address();
 
-  this->disconnect_check();
-
   if(address != 0) {
     if(this->has_node(address)) {
       TYBleNode *node = this->get_node(address);
+
+      if(!node->has_command()) {
+        this->disconnect_check();
+      }
 
       if(node->has_session_key()) {
         // Prevent continuous reconnecting
@@ -400,6 +416,17 @@ void TuyaBleClient::loop() {
         if(this->connected() && node->has_command()) {
           node->issue_command();
         }
+      }
+    }
+  }
+  else if(this->nodes.size() > 0) {
+    this->nodes_i = next(this->nodes_i);
+    if(this->nodes_i == this->nodes.end()) {
+      this->nodes_i = this->nodes.begin();
+    }
+    if(this->nodes_i->first != 0) {
+      if(this->nodes_i->second->has_command() && this->nodes_i->second->has_session_key()) {
+        this->connect_mac_address(this->nodes_i->first);
       }
     }
   }
