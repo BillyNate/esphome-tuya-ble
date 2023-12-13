@@ -19,6 +19,7 @@ using md5::MD5Digest;
 
 enum DataCollectionState {
   NO_DATA,
+  EXPECTING,
   COLLECTING,
   COLLECTED
 };

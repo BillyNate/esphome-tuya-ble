@@ -150,6 +150,8 @@ void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned cha
   encrypted_data[0] = (uint8_t)(encrypted_size);
   encrypted_data[1] = (protocol_version << 4);
 
+  this->data_collection_state = DataCollectionState::EXPECTING;
+
   write_to_char(this->write_char, encrypted_data, encrypted_size + 2);
 
   (*seq_num)++;
@@ -339,6 +341,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if(esp32_ble_client::BLEClientBase::state_ == esp32_ble_tracker::ClientState::ESTABLISHED) {
         this->register_for_notifications();
         if(!node->has_session_key()) {
+          this->should_disconnect = false;
           node->seq_num = 1;
           node->request_info();
         }
@@ -352,7 +355,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if(this->data_collection_state == DataCollectionState::COLLECTED) {
 
         this->process_data(node);
-        if(node->has_session_key()) {
+        if(node->has_session_key() && !node->has_command()) {
           this->disconnect_when_appropriate();
         }
       }
@@ -382,12 +385,12 @@ void TuyaBleClient::connect_mac_address(const uint64_t mac_address) {
 
 void TuyaBleClient::disconnect_when_appropriate() {
   this->should_disconnect = true;
-  this->should_disconnect_timer = esphome::millis();
+  this->should_disconnect_timer = esphome::millis() + this->disconnect_after;
 }
 
 void TuyaBleClient::disconnect_check() {
   ESP_LOGV(TAG, "disconnect_check. should_disconnect: %i, data_collection_state: %i, should_disconnect_timer: %i, millis: %i", this->should_disconnect, this->data_collection_state, this->should_disconnect_timer, esphome::millis());
-  if(this->should_disconnect && this->data_collection_state == DataCollectionState::NO_DATA && esphome::millis() > this->should_disconnect_timer + this->disconnect_after) {
+  if(this->should_disconnect && this->data_collection_state == DataCollectionState::NO_DATA && esphome::millis() > this->should_disconnect_timer) {
     this->disconnect();
     this->should_disconnect = false;
   }
@@ -426,6 +429,7 @@ void TuyaBleClient::loop() {
     }
     if(this->nodes_i->first != 0) {
       if(this->nodes_i->second->has_command() && this->nodes_i->second->has_session_key()) {
+        this->should_disconnect = false;
         this->connect_mac_address(this->nodes_i->first);
       }
     }
