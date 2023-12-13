@@ -51,7 +51,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    var.set_disconnect_after(config[CONF_TIMEOUT])
+    cg.add(var.set_disconnect_after(config[CONF_TIMEOUT]))
 
     await esp32_ble_tracker.register_client(var, config)
     await tuya_ble_tracker.register_client(var, config)
