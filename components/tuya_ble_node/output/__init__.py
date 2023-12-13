@@ -8,14 +8,14 @@ from .. import tuya_ble_node_ns
 
 DEPENDENCIES = ["tuya_ble_node"]
 
-TuyaBleBinaryOutput = tuya_ble_node_ns.class_(
-    "TuyaBleBinaryOutput", output.BinaryOutput, cg.Component
+TuyaBLEBinaryOutput = tuya_ble_node_ns.class_(
+    "TuyaBLEBinaryOutput", output.BinaryOutput, cg.Component
 )
 
 CONFIG_SCHEMA = cv.All(
     output.BINARY_OUTPUT_SCHEMA.extend(
         {
-            cv.Required(CONF_ID): cv.declare_id(TuyaBleBinaryOutput),
+            cv.Required(CONF_ID): cv.declare_id(TuyaBLEBinaryOutput),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)

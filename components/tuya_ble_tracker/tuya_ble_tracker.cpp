@@ -8,7 +8,7 @@ namespace tuya_ble_tracker {
 
 static const char *const TAG = "tuya_ble_tracker";
 
-bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
+bool TuyaBLETracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
 
   if(!this->has_client) {
     ESP_LOGW(TAG, "No client registered!");
@@ -22,7 +22,7 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
     return false;
   }
 
-  TYBleNode *ble_node = this->client->get_node(mac_address);
+  TYBLENode *ble_node = this->client->get_node(mac_address);
   ble_node->last_detected = esphome::millis();
   ble_node->rssi = device.get_rssi();
 
@@ -36,7 +36,7 @@ bool TuyaBleTracker::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   return true;
 }
 
-void TuyaBleTracker::setup() {
+void TuyaBLETracker::setup() {
   Component::setup();
 
   ESP_LOGD(TAG, "setup");
@@ -46,7 +46,7 @@ void TuyaBleTracker::setup() {
   }
 }
 
-void TuyaBleTracker::loop() {
+void TuyaBLETracker::loop() {
   if(this->has_client) {
     //ESP_LOGD(TAG, "Connection state: %i, millis: %i, last_connection_attempt: %i, connected: %i", this->client->state(), esphome::millis(), this->last_connection_attempt, this->client->connected());
     if(this->client->state() == esp32_ble_tracker::ClientState::CONNECTING && esphome::millis() > this->last_connection_attempt + 20000) {

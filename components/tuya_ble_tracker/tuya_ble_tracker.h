@@ -11,16 +11,16 @@ namespace tuya_ble_tracker {
 
 using namespace esphome::tuya_ble;
 
-class TuyaBleTracker : public esp32_ble_tracker::ESPBTDeviceListener, public Component {
+class TuyaBLETracker : public esp32_ble_tracker::ESPBTDeviceListener, public Component {
   uint32_t last_connection_attempt{0};
   
   public:
     bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) override;
 
-    void on_scan_end() override { ESP_LOGD("TuyaBle", "Finished scan."); }
+    void on_scan_end() override { ESP_LOGD("TuyaBLE", "Finished scan."); }
 
-    void register_client(TYBleClient *client) {
-      ESP_LOGD("TuyaBle", "Registering client");
+    void register_client(TYBLEClient *client) {
+      ESP_LOGD("TuyaBLE", "Registering client");
       this->client = client;
       this->has_client = true;
     }
@@ -28,7 +28,7 @@ class TuyaBleTracker : public esp32_ble_tracker::ESPBTDeviceListener, public Com
     void loop() override;
 
  protected:
-  TYBleClient *client;
+  TYBLEClient *client;
   bool has_client = false;
 };
 

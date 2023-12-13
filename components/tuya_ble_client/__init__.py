@@ -8,7 +8,7 @@ DEPENDENCIES = ["tuya_ble_tracker", "esp32"]
 
 tuya_ble_client_ns = cg.esphome_ns.namespace("tuya_ble_client")
 
-TuyaBleClient = tuya_ble_client_ns.class_("TuyaBleClient", esp32_ble_client.BLEClientBase)
+TuyaBLEClient = tuya_ble_client_ns.class_("TuyaBLEClient", esp32_ble_client.BLEClientBase)
 
 CONF_LOCAL_KEY = 'local_key'
 
@@ -18,7 +18,7 @@ MULTI_CONF = 3
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(TuyaBleClient),
+            cv.GenerateID(): cv.declare_id(TuyaBLEClient),
             cv.Optional(
                 CONF_TIMEOUT, default="2000ms"
             ): cv.positive_time_period_milliseconds,
@@ -33,7 +33,7 @@ CONF_TUYA_BLE_CLIENT_ID = "tuya_ble_client_id"
 
 TUYA_BLE_CLIENT_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_TUYA_BLE_CLIENT_ID): cv.use_id(TuyaBleClient),
+        cv.GenerateID(CONF_TUYA_BLE_CLIENT_ID): cv.use_id(TuyaBLEClient),
     }
 )
 

@@ -5,7 +5,7 @@ namespace tuya_ble_client {
 
 static const char *const TAG = "tuya_ble_client";
 
-void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
+void TuyaBLEClient::set_state(esp32_ble_tracker::ClientState st) {
   esp32_ble_client::BLEClientBase::set_state(st);
   
   switch(st) {
@@ -42,7 +42,7 @@ void TuyaBleClient::set_state(esp32_ble_tracker::ClientState st) {
   }
 }
 
-void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag) {
+void TuyaBLEClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned char *data, size_t size, unsigned char *encrypted_data, size_t encrypted_size, unsigned char *key, unsigned char *iv, uint32_t response_to, uint8_t security_flag) {
 
   size_t inflated_size = META_SIZE + size + CRC_SIZE + (AES_BLOCK_SIZE - ((META_SIZE + size + CRC_SIZE) % AES_BLOCK_SIZE)); // 12 bytes of meta data + size of data + 2 bytes crc + padding
   unsigned char raw[inflated_size]{0};
@@ -87,7 +87,7 @@ void TuyaBleClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned ch
   esp_aes_free(&aes);
 }
 
-std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> TuyaBleClient::decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv) {
+std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> TuyaBLEClient::decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv) {
 
   uint8_t security_flag = encrypted_data[0];
   uint32_t seq_num;
@@ -112,7 +112,7 @@ std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> TuyaBleClient::decrypt_data(
   return std::make_tuple(seq_num, code, decrypted_size, response_to);
 }
 
-void TuyaBleClient::write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size) {
+void TuyaBLEClient::write_to_char(esp32_ble_client::BLECharacteristic *write_char, unsigned char *encrypted_data, size_t encrypted_size) {
   
   ESP_LOGV(TAG, "%s", binary_to_string(encrypted_data, encrypted_size).c_str());
   
@@ -132,7 +132,7 @@ void TuyaBleClient::write_to_char(esp32_ble_client::BLECharacteristic *write_cha
   }
 }
 
-void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to, int protocol_version) {
+void TuyaBLEClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to, int protocol_version) {
 
   ESP_LOGV(TAG, "write_data: %s", binary_to_string(data, size).c_str());
   
@@ -157,7 +157,7 @@ void TuyaBleClient::write_data(TuyaBLECode code, uint32_t *seq_num, unsigned cha
   (*seq_num)++;
 }
 
-void TuyaBleClient::collect_data(unsigned char *data, size_t size) {
+void TuyaBLEClient::collect_data(unsigned char *data, size_t size) {
 
   ESP_LOGV(TAG, "%s", binary_to_string(data, size).c_str());
 
@@ -207,7 +207,7 @@ void TuyaBleClient::collect_data(unsigned char *data, size_t size) {
   }
 }
 
-void TuyaBleClient::process_data(TYBleNode *node) {
+void TuyaBLEClient::process_data(TYBLENode *node) {
   if(this->data_collection_state != DataCollectionState::COLLECTED || this->data_collection_expected_size <= IV_SIZE + 1) { // Should be a multiple of 16 as well?
     ESP_LOGW(TAG, "Attempt to process received data aborted");
     return;
@@ -276,7 +276,7 @@ void TuyaBleClient::process_data(TYBleNode *node) {
   this->data_collection_state = DataCollectionState::NO_DATA;
 }
 
-void TuyaBleClient::register_for_notifications() {
+void TuyaBLEClient::register_for_notifications() {
   this->notification_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_notification_char));
   this->write_char = this->get_characteristic(esp32_ble_tracker::ESPBTUUID::from_raw(uuid_info_service), esp32_ble_tracker::ESPBTUUID::from_raw(uuid_write_char));
 
@@ -287,35 +287,35 @@ void TuyaBleClient::register_for_notifications() {
   }
 }
 
-void TuyaBleClient::register_node(uint64_t mac_address, TYBleNode *tuyaBleNode) {
+void TuyaBLEClient::register_node(uint64_t mac_address, TYBLENode *tuyaBLENode) {
 
   if(mac_address == 0) {
     ESP_LOGE(TAG, "Attempted to register node with mac address 00:00:00:00:00:00");
     return;
   }
 
-  this->nodes.insert(std::make_pair(mac_address, tuyaBleNode));
+  this->nodes.insert(std::make_pair(mac_address, tuyaBLENode));
   
   ESP_LOGD(TAG, "Added: %llu from config", mac_address);
 }
 
-void TuyaBleClient::set_disconnect_after(uint16_t disconnect_after) {
+void TuyaBLEClient::set_disconnect_after(uint16_t disconnect_after) {
 
   this->disconnect_after = disconnect_after;
 }
 
-bool TuyaBleClient::has_node(uint64_t mac_address) {
+bool TuyaBLEClient::has_node(uint64_t mac_address) {
   return this->nodes.count(mac_address) > 0;
 }
 
-TYBleNode *TuyaBleClient::get_node(uint64_t mac_address) {
+TYBLENode *TuyaBLEClient::get_node(uint64_t mac_address) {
   return this->nodes[mac_address];
 }
 
-void TuyaBleClient::on_shutdown() {
+void TuyaBLEClient::on_shutdown() {
 }
 
-bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) {
+bool TuyaBLEClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) {
   ESP_LOGV(TAG, "[%d] [%s] gattc_event_handler: event=%d gattc_if=%d", this->connection_index_, this->address_str_.c_str(), event, gattc_if);
 
   if (!esp32_ble_client::BLEClientBase::gattc_event_handler(event, gattc_if, param))
@@ -326,7 +326,7 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
   if(!this->has_node(mac_address)) {
     return true;
   }
-  TYBleNode *node = this->get_node(mac_address);
+  TYBLENode *node = this->get_node(mac_address);
 
   switch (event) {
     case ESP_GATTC_DISCONNECT_EVT: {
@@ -365,10 +365,10 @@ bool TuyaBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
   return true;
 }
 
-void TuyaBleClient::connect_mac_address(const uint64_t mac_address) {
+void TuyaBLEClient::connect_mac_address(const uint64_t mac_address) {
   ESP_LOGV(TAG, "Connecting to %llu", mac_address);
 
-  TYBleNode *node = this->get_node(mac_address);
+  TYBLENode *node = this->get_node(mac_address);
 
   this->set_address(mac_address);
   this->set_state(esp32_ble_tracker::ClientState::DISCOVERED);
@@ -383,12 +383,12 @@ void TuyaBleClient::connect_mac_address(const uint64_t mac_address) {
   node->reset_session_key(); // New session key every new connection?
 }
 
-void TuyaBleClient::disconnect_when_appropriate() {
+void TuyaBLEClient::disconnect_when_appropriate() {
   this->should_disconnect = true;
   this->should_disconnect_timer = esphome::millis() + this->disconnect_after;
 }
 
-void TuyaBleClient::disconnect_check() {
+void TuyaBLEClient::disconnect_check() {
   ESP_LOGV(TAG, "disconnect_check. should_disconnect: %i, data_collection_state: %i, should_disconnect_timer: %i, millis: %i", this->should_disconnect, this->data_collection_state, this->should_disconnect_timer, esphome::millis());
   if(this->should_disconnect && this->data_collection_state == DataCollectionState::NO_DATA && esphome::millis() > this->should_disconnect_timer) {
     this->disconnect();
@@ -396,14 +396,14 @@ void TuyaBleClient::disconnect_check() {
   }
 }
 
-void TuyaBleClient::set_disconnect_callback(std::function<void()> &&f) { this->disconnect_callback = std::move(f); }
+void TuyaBLEClient::set_disconnect_callback(std::function<void()> &&f) { this->disconnect_callback = std::move(f); }
 
-void TuyaBleClient::loop() {
+void TuyaBLEClient::loop() {
   uint64_t address = this->get_address();
 
   if(address != 0) {
     if(this->has_node(address)) {
-      TYBleNode *node = this->get_node(address);
+      TYBLENode *node = this->get_node(address);
 
       if(!node->has_command()) {
         this->disconnect_check();

@@ -50,7 +50,7 @@ enum Security {
   SESSION_KEY = 0x05,
 };
 
-struct TYBleCommand {
+struct TYBLECommand {
   TuyaBLECode code;
   std::vector<unsigned char> data;
   unsigned char *key;
@@ -58,7 +58,7 @@ struct TYBleCommand {
   int protocol_version;
 };
 
-class TYBleNode {
+class TYBLENode {
   public:
     unsigned char local_key[6];
     unsigned char login_key[16];
@@ -76,10 +76,10 @@ class TYBleNode {
     virtual void toggle(bool value);
 };
 
-class TYBleClient {
+class TYBLEClient {
   esp32_ble_tracker::ClientState state_;
   public:
-    virtual TYBleNode *get_node(uint64_t mac_address);
+    virtual TYBLENode *get_node(uint64_t mac_address);
     virtual bool has_node(uint64_t mac_address) = 0;
     virtual void connect_mac_address(const uint64_t mac_address);
     virtual void set_address(uint64_t address) = 0;

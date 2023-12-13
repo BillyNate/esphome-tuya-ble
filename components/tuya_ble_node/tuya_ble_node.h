@@ -13,9 +13,9 @@ namespace tuya_ble_node {
 using namespace esphome::tuya_ble;
 using md5::MD5Digest;
 
-class TuyaBleNode : public TYBleNode, public Component {
+class TuyaBLENode : public TYBLENode, public Component {
   
-  std::deque<struct TYBleCommand> command_queue;
+  std::deque<struct TYBLECommand> command_queue;
 
   public:
     bool has_command();
@@ -34,18 +34,18 @@ class TuyaBleNode : public TYBleNode, public Component {
 
     void toggle(bool value);
 
-    void register_client(TYBleClient *client) {
+    void register_client(TYBLEClient *client) {
       ESP_LOGD("tuya_ble_node", "Client registered in node!");
       this->client = client;
       this->has_client = true;
     }
 
   protected:
-    TYBleClient *client;
+    TYBLEClient *client;
     bool has_client = false;
     uint8_t max_queued = 1;
 
-    void enqueue_command(TYBleCommand *command);
+    void enqueue_command(TYBLECommand *command);
 };
 
 }  // namespace tuya_ble_node

@@ -8,7 +8,7 @@ DEPENDENCIES = ["tuya_ble_client", "esp32"]
 
 tuya_ble_node_ns = cg.esphome_ns.namespace("tuya_ble_node")
 
-TuyaBleNode = tuya_ble_node_ns.class_("TuyaBleNode", cg.Component)
+TuyaBLENode = tuya_ble_node_ns.class_("TuyaBLENode", cg.Component)
 
 CONF_LOCAL_KEY = 'local_key'
 CONF_MAX_QUEUED = 'max_queued'
@@ -18,7 +18,7 @@ MULTI_CONF = True
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(TuyaBleNode),
+            cv.GenerateID(): cv.declare_id(TuyaBLENode),
             cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
             cv.Required(CONF_LOCAL_KEY): cv.string,
             cv.Optional(CONF_MAX_QUEUED, default=1): cv.int_range(1, 10),
@@ -32,7 +32,7 @@ CONF_TUYA_BLE_NODE_ID = "tuya_ble_node_id"
 
 TUYA_BLE_NODE_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_TUYA_BLE_NODE_ID): cv.use_id(TuyaBleNode),
+        cv.GenerateID(CONF_TUYA_BLE_NODE_ID): cv.use_id(TuyaBLENode),
     }
 )
 

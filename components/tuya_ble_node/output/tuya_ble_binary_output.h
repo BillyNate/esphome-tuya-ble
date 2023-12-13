@@ -9,20 +9,20 @@
 namespace esphome {
 namespace tuya_ble {
 
-class TuyaBleBinaryOutput : public output::BinaryOutput, public Component {
+class TuyaBLEBinaryOutput : public output::BinaryOutput, public Component {
   public:
     void dump_config() override;
     void loop() override {}
     float get_setup_priority() const override { return setup_priority::DATA; }
 
-    void register_node(TYBleNode *node) {
+    void register_node(TYBLENode *node) {
       ESP_LOGD("tuya_ble_binary_output", "Node registered in output!");
       this->node = node;
     }
 
   protected:
     void write_state(bool state) override;
-    TYBleNode *node;
+    TYBLENode *node;
 };
 
 }  // namespace ble_client

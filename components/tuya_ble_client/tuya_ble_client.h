@@ -31,15 +31,15 @@ static std::string uuid_notification_char = "00002b10-0000-1000-8000-00805f9b34f
 /** UUID for Bluetooth GATT command characteristic */
 static std::string uuid_write_char = "00002b11-0000-1000-8000-00805f9b34fb";
 
-class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYBleClient {
+class TuyaBLEClient : public esp32_ble_client::BLEClientBase, virtual public TYBLEClient {
 
   //DeviceInfoResolver *device_info_resolver = new DeviceInfoResolver();
 
   esp32_ble_client::BLECharacteristic *notification_char;
   esp32_ble_client::BLECharacteristic *write_char;
 
-  std::map<uint64_t, TYBleNode*> nodes;
-  std::map<uint64_t, TYBleNode*>::iterator nodes_i = nodes.begin();
+  std::map<uint64_t, TYBLENode*> nodes;
+  std::map<uint64_t, TYBLENode*>::iterator nodes_i = nodes.begin();
   std::vector<unsigned char> data_collected;
   uint8_t data_collection_incrementor = 0;
   uint32_t data_collection_expected_size = 0;
@@ -76,7 +76,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
 
     static std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv);
   
-    void register_node(uint64_t mac_address, TYBleNode *tuyaBleNode);
+    void register_node(uint64_t mac_address, TYBLENode *tuyaBLENode);
     
     void set_disconnect_after(uint16_t disconnect_after);
 
@@ -84,13 +84,13 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
 
     void connect_mac_address(const uint64_t mac_address);
 
-    TYBleNode *get_node(uint64_t mac_address);
+    TYBLENode *get_node(uint64_t mac_address);
 
     void disconnect_when_appropriate();
 
     void set_disconnect_callback(std::function<void()> &&f);
 
-    // write_data should actually not be public, but it needs to be accessible by BleNode. Maybe setting it as a callback would be a better solution...
+    // write_data should actually not be public, but it needs to be accessible by BLENode. Maybe setting it as a callback would be a better solution...
     void write_data(TuyaBLECode code, uint32_t *seq_num, unsigned char *data, size_t size, unsigned char *key, uint32_t response_to = 0, int protocol_version = 3);
 
   protected:
@@ -107,7 +107,7 @@ class TuyaBleClient : public esp32_ble_client::BLEClientBase, virtual public TYB
 
     void collect_data(unsigned char *data, size_t size);
 
-    void process_data(TYBleNode *node);
+    void process_data(TYBLENode *node);
 
     void register_for_notifications();
 

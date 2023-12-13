@@ -6,14 +6,14 @@ DEPENDENCIES = ["esp32_ble_tracker"]
 
 tuya_ble_tracker_ns = cg.esphome_ns.namespace("tuya_ble_tracker")
 
-TuyaBleTracker = tuya_ble_tracker_ns.class_("TuyaBleTracker", esp32_ble_tracker.ESPBTDeviceListener, cg.Component)
+TuyaBLETracker = tuya_ble_tracker_ns.class_("TuyaBLETracker", esp32_ble_tracker.ESPBTDeviceListener, cg.Component)
 
 CONF_TUYA_BLE_TRACKER_ID = 'tuya_ble_tracker_id'
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(CONF_TUYA_BLE_TRACKER_ID): cv.declare_id(TuyaBleTracker),
+            cv.GenerateID(CONF_TUYA_BLE_TRACKER_ID): cv.declare_id(TuyaBLETracker),
         }
     )
     .extend(esp32_ble_tracker.ESP_BLE_DEVICE_SCHEMA)
@@ -22,7 +22,7 @@ CONFIG_SCHEMA = (
 
 TUYA_BLE_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_TUYA_BLE_TRACKER_ID): cv.use_id(TuyaBleTracker),
+        cv.GenerateID(CONF_TUYA_BLE_TRACKER_ID): cv.use_id(TuyaBLETracker),
     }
 )
 
