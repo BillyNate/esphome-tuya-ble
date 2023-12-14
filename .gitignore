@@ -1,0 +1,5 @@
+# Gitignore settings for ESPHome
+# This file has been modified to suit this repo needs.
+/.esphome/
+/secrets.yaml
+__pycache__/
