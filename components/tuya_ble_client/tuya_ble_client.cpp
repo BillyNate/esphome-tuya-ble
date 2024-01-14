@@ -94,12 +94,10 @@ std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> TuyaBLEClient::decrypt_data(
     return std::make_tuple(0, TuyaBLECode::FUN_SENDER_DEVICE_INFO, 0, 0);
   }
 
-  uint8_t security_flag = encrypted_data[0];
   uint32_t seq_num;
   TuyaBLECode code;
   size_t decrypted_size;
   uint32_t response_to;
-  size_t deflated_size = encrypted_size - sizeof(security_flag) - IV_SIZE;
 
   esp_aes_context aes;
   esp_aes_init(&aes);
