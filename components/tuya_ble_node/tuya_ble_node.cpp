@@ -40,6 +40,10 @@ void TuyaBLENode::issue_command() {
   this->command_queue.pop_back();
 }
 
+void TuyaBLENode::set_device_id(std::string device_id) {
+  this->device_id = device_id;
+}
+
 void TuyaBLENode::set_local_key(const char *local_key) {
 
   memcpy(this->local_key, local_key, 6);
@@ -56,6 +60,36 @@ void TuyaBLENode::set_local_key(const char *local_key) {
 
 void TuyaBLENode::set_max_queued(uint8_t max) {
   this->max_queued = max;
+}
+
+void TuyaBLENode::set_uuid(std::string uuid) {
+  this->uuid = uuid;
+}
+
+void TuyaBLENode::pair() {
+  ESP_LOGD(TAG, "Pairing device...");
+
+  // https://github.com/airy10/ha_tuya_ble/blob/LightStrip/custom_components/tuya_ble/tuya_ble/tuya_ble.py#L315
+  size_t data_size = 44;
+  size_t uuid_size = this->uuid.size();
+  size_t device_id_size = this->device_id.size();
+  unsigned char data[data_size]{0};
+
+  if(device_id_size == 0 || uuid_size == 0) {
+    ESP_LOGE(TAG, "Cannot pair if device_id and uuid are not set");
+    return;
+  }
+
+  if(device_id_size + 6 + uuid_size > data_size) {
+    ESP_LOGE(TAG, "Size of device_id + uuid is too big");
+    return;
+  }
+  
+  memcpy(data, this->uuid.c_str(), uuid_size);
+  memcpy(&data[uuid_size], this->local_key, 6);
+  memcpy(&data[uuid_size + 6], this->device_id.c_str(), device_id_size);
+
+  this->client->write_data(TuyaBLECode::FUN_SENDER_PAIR, &this->seq_num, data, data_size, this->session_key);
 }
 
 void TuyaBLENode::request_info() {

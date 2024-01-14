@@ -60,10 +60,13 @@ struct TYBLECommand {
 
 class TYBLENode {
   public:
+    std::string device_id;
     unsigned char local_key[6];
     unsigned char login_key[16];
     unsigned char session_key[16];
     // There's supposedly also an auth_key, but since it's not used, it's not declared either
+    std::string uuid;
+    bool is_paired = false;
     uint32_t seq_num;
     uint32_t last_detected;
     int rssi;
@@ -71,6 +74,7 @@ class TYBLENode {
     virtual bool has_command();
     virtual bool has_session_key();
     virtual void issue_command();
+    virtual void pair();
     virtual void request_info();
     virtual void reset_session_key();
     virtual void toggle(bool value);

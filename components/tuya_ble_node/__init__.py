@@ -10,8 +10,10 @@ tuya_ble_node_ns = cg.esphome_ns.namespace("tuya_ble_node")
 
 TuyaBLENode = tuya_ble_node_ns.class_("TuyaBLENode", cg.Component)
 
+CONF_DEVICE_ID = 'device_id'
 CONF_LOCAL_KEY = 'local_key'
 CONF_MAX_QUEUED = 'max_queued'
+CONF_UUID = 'uuid'
 
 MULTI_CONF = True
 
@@ -21,6 +23,8 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(TuyaBLENode),
             cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
             cv.Required(CONF_LOCAL_KEY): cv.string,
+            cv.Optional(CONF_DEVICE_ID): cv.string,
+            cv.Optional(CONF_UUID): cv.string,
             cv.Optional(CONF_MAX_QUEUED, default=1): cv.int_range(1, 10),
         }
     )
@@ -41,6 +45,10 @@ async def to_code(config):
     await cg.register_component(var, config)
 
     cg.add(var.set_local_key(config[CONF_LOCAL_KEY]))
+    if CONF_DEVICE_ID in config:
+        cg.add(var.set_device_id(config[CONF_DEVICE_ID]))
+    if CONF_UUID in config:
+        cg.add(var.set_uuid(config[CONF_UUID]))
     cg.add(var.set_max_queued(config[CONF_MAX_QUEUED]))
 
     await tuya_ble_client.register_tuya_node(var, config)

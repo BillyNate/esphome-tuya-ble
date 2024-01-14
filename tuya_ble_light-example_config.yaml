@@ -24,6 +24,8 @@ tuya_ble_node:
   - id: tuya_ble_light
     mac_address: !secret mac_address
     local_key: !secret local_key
+    device_id: !secret device_id
+    uuid: !secret uuid
     tuya_ble_client_id: tuya_client
 
 output:

@@ -6,6 +6,7 @@ For an example yaml see [`tuya_ble_light-example_config.yaml`](tuya_ble_light-ex
 
 ### Prerequisite
 In order to be able to connect to a device the mac address of the device is needed and the corresponding local key from Tuya.  
+If the device id and uuid are set in the config as well, a pairing request will be issued.  
 To obtain the device's local key you will need a Tuya IoT dev account and some tools. Please search the internet for more information on how to obtain a local key.  
 This component is focused around the ESP32.
 

@@ -24,9 +24,15 @@ class TuyaBLENode : public TYBLENode, public Component {
 
     void issue_command();
 
+    void set_device_id(std::string device_id);
+
     void set_local_key(const char *local_key);
 
     void set_max_queued(uint8_t max);
+
+    void set_uuid(std::string uuid);
+
+    void pair();
 
     void request_info();
 

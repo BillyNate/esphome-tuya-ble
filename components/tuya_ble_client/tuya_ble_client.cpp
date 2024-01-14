@@ -226,30 +226,33 @@ void TuyaBLEClient::process_data(TYBLENode *node) {
     key = node->session_key;
   }
   
-  
   unsigned char first_decrypted_part[AES_BLOCK_SIZE]{0};
+  const size_t data_size_first_block = AES_BLOCK_SIZE - META_SIZE;
   size_t start_pos = sizeof(security_flag) + IV_SIZE;
   uint32_t seq_num;
   TuyaBLECode code;
   size_t decrypted_size;
   uint32_t response_to;
+
+  // Decrypt first AES_BLOCK_SIZE (16 bytes), to get the meta data (Meta data is only 12 bytes long though, so there might be up to 4 bytes of data in this block as well):
   std::tie(seq_num, code, decrypted_size, response_to) = decrypt_data(&this->data_collected[start_pos], this->data_collection_expected_size - start_pos, first_decrypted_part, AES_BLOCK_SIZE, key, &this->data_collected[1]);
-  // get length now that it's decrypted...
-
-  switch(code)
-  {
-    case TuyaBLECode::FUN_SENDER_DEVICE_INFO:
-      decrypted_size = 32; // Only need the srand actually, but the auth_key is in here as well
-      break;
-
-    default:
-      decrypted_size = this->data_collection_expected_size - sizeof(security_flag) - IV_SIZE - AES_BLOCK_SIZE;
-      break;
+  
+  if(code == TuyaBLECode::FUN_SENDER_DEVICE_INFO) { // Don't need the full 84 bytes of data
+    decrypted_size = 12; // Only need the srand, set to 30 to get the auth_key as well
   }
 
   if(decrypted_size > 0) {
-    unsigned char decrypted_data[decrypted_size]{0};
-    decrypt_data(&this->data_collected[start_pos + AES_BLOCK_SIZE], this->data_collection_expected_size - start_pos - AES_BLOCK_SIZE, decrypted_data, decrypted_size, key, &this->data_collected[1]);
+    size_t blocks = (decrypted_size - data_size_first_block) / AES_BLOCK_SIZE + ((decrypted_size - data_size_first_block) % AES_BLOCK_SIZE > 0); // Size needs to be a multiple of AES_BLOCK_SIZE
+    if(decrypted_size <= data_size_first_block) {
+      blocks = 0;
+    }
+    unsigned char decrypted_data[blocks * AES_BLOCK_SIZE + data_size_first_block]{0};
+
+    memcpy(decrypted_data, &first_decrypted_part[META_SIZE], std::min((size_t)data_size_first_block, decrypted_size)); // Copy over existing data from first decrypted part (up to 4 bytes of the end)
+
+    if(decrypted_size > data_size_first_block) { // if there's also data past the first decrypted part, add this as well
+      decrypt_data(&this->data_collected[start_pos + AES_BLOCK_SIZE], this->data_collection_expected_size - start_pos - AES_BLOCK_SIZE, &decrypted_data[data_size_first_block], blocks * AES_BLOCK_SIZE, key, &this->data_collected[1]);
+    }
   
     switch(code) {
       case TuyaBLECode::FUN_SENDER_DEVICE_INFO:
@@ -258,12 +261,25 @@ void TuyaBLEClient::process_data(TYBLENode *node) {
     
           md5digest->init();
           md5digest->add(node->local_key, 6);
-          md5digest->add(&decrypted_data[2], 6);
+          md5digest->add(&decrypted_data[6], 6);
           md5digest->calculate();
           md5digest->get_bytes(&node->session_key[0]);
           ESP_LOGD(TAG, "Session key set!");
 
           ESP_LOGV(TAG, "%s", binary_to_string(node->session_key, KEY_SIZE).c_str());
+        }
+        break;
+
+      case TuyaBLECode::FUN_SENDER_PAIR:
+        {
+          if(decrypted_size < 1) {
+            ESP_LOGD(TAG, "PAIR response too short");
+            return;
+          }
+          if(decrypted_data[0] == 0 || decrypted_data[0] == 2) { // Pair success or already paired
+            node->is_paired = true;
+            ESP_LOGD(TAG, "Paired succesfully!");
+          }
         }
         break;
 
@@ -355,8 +371,14 @@ bool TuyaBLEClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if(this->data_collection_state == DataCollectionState::COLLECTED) {
 
         this->process_data(node);
-        if(node->has_session_key() && !node->has_command()) {
-          this->disconnect_when_appropriate();
+        
+        if(node->has_session_key()) {
+          if(!node->is_paired && node->uuid.size() > 0 && node->device_id.size() > 0) {
+            node->pair();
+          }
+          else if(!node->has_command()) {
+            this->disconnect_when_appropriate();
+          }
         }
       }
       break;
