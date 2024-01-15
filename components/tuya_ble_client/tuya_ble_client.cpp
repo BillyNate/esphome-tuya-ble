@@ -89,6 +89,11 @@ void TuyaBLEClient::encrypt_data(uint32_t seq_num, TuyaBLECode code, unsigned ch
 
 std::tuple<uint32_t, TuyaBLECode, size_t, uint32_t> TuyaBLEClient::decrypt_data(unsigned char *encrypted_data, size_t encrypted_size, unsigned char *data, size_t size, unsigned char *key, unsigned char *iv) {
 
+  if(size % AES_BLOCK_SIZE != 0) {
+    ESP_LOGE(TAG, "Size of data to decrypt needs to be a multiple of block size");
+    return std::make_tuple(0, TuyaBLECode::FUN_SENDER_DEVICE_INFO, 0, 0);
+  }
+
   uint8_t security_flag = encrypted_data[0];
   uint32_t seq_num;
   TuyaBLECode code;
