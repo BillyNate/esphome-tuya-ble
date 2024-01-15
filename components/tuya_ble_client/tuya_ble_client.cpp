@@ -262,6 +262,10 @@ void TuyaBLEClient::process_data(TYBLENode *node) {
     switch(code) {
       case TuyaBLECode::FUN_SENDER_DEVICE_INFO:
         {
+          if(decrypted_size < 12) {
+            ESP_LOGD(TAG, "DEVICE INFO response too short");
+            return;
+          }
           MD5Digest *md5digest = new MD5Digest();
     
           md5digest->init();
