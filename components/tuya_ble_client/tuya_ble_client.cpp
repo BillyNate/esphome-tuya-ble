@@ -321,7 +321,7 @@ void TuyaBLEClient::register_node(uint64_t mac_address, TYBLENode *tuyaBLENode) 
 
   this->nodes.insert(std::make_pair(mac_address, tuyaBLENode));
   
-  ESP_LOGD(TAG, "Added: %llu from config", mac_address);
+  ESP_LOGD(TAG, "Added: %llX from config", mac_address);
 }
 
 void TuyaBLEClient::set_disconnect_after(uint16_t disconnect_after) {
