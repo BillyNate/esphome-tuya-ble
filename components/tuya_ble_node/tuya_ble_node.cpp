@@ -7,7 +7,7 @@ static const char *const TAG = "tuya_ble_node";
 
 void TuyaBLENode::enqueue_command(TYBLECommand *command) {
   
-  while(this->command_queue.size() > this->max_queued) {
+  while(this->command_queue.size() >= this->max_queued) {
     this->command_queue.pop_back();
   }
 
